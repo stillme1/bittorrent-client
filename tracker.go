@@ -160,9 +160,7 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 		println("URL Parse failed:", err.Error())
 		return
 	}
-	localAddr := net.UDPAddr{IP: net.IPv4zero, Port: 6881}
-	remoteAddr,_ := net.ResolveTCPAddr("tcp", URL.Host)
-	connection, err := net.DialUDP("udp", &localAddr, (*net.UDPAddr)(remoteAddr))
+	connection, err := net.Dial("udp", URL.Host)
 	if err != nil {
 		println("Connection not established, Error = ", err.Error())
 		return
