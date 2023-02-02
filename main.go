@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"os"
+	"time"
 
 	gotorrentparser "github.com/j-muller/go-torrent-parser"
 )
@@ -12,7 +13,6 @@ func main() {
 	rand.Read(PEER_ID)
 
 	arg := os.Args[1:]
-	println(arg[0])
 	torrent,err := gotorrentparser.ParseFromFile(arg[0])
 
 	if err != nil {
@@ -20,9 +20,11 @@ func main() {
 	}
 	
 	peers := getPeer(torrent, PEER_ID)
+	var PeerConnection []PeerConnection
 
-	println("list of peers: ")
 	for _, i := range peers {
-		println(i.ip, i.port)
+		go handShake(torrent, i, PEER_ID , &PeerConnection);
 	}
+	time.Sleep(10*time.Second)
+	println(len(PeerConnection))
 }

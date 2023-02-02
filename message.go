@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/binary"
-
-	gotorrentparser "github.com/j-muller/go-torrent-parser"
+	"encoding/hex"
 )
 
-func buildHandshake(torrent *gotorrentparser.Torrent, peerId []byte) []byte {
+func buildHandshake(infoHash string, peerId []byte) []byte {
 	req := make([]byte, 68)
 
 	// pstrlen
@@ -19,7 +18,8 @@ func buildHandshake(torrent *gotorrentparser.Torrent, peerId []byte) []byte {
 	copy(req[20:], []byte{0, 0, 0, 0, 0, 0, 0, 0})
 
 	// info_hash
-	copy(req[28:], torrent.InfoHash)
+	info_hash,_ := hex.DecodeString(infoHash)
+	copy(req[28:], info_hash)
 
 	// peer_id
 	copy(req[48:], peerId)

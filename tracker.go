@@ -160,12 +160,14 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 		println("URL Parse failed:", err.Error())
 		return
 	}
-
-	connection, err := net.Dial("udp", URL.Host)
+	localAddr := net.UDPAddr{IP: net.IPv4zero, Port: 6881}
+	remoteAddr,_ := net.ResolveTCPAddr("tcp", URL.Host)
+	connection, err := net.DialUDP("udp", &localAddr, (*net.UDPAddr)(remoteAddr))
 	if err != nil {
 		println("Connection not established, Error = ", err.Error())
 		return
 	}
+	defer connection.Close()
 
 	err = connection.SetReadDeadline(time.Now().Add(15 * time.Second))
 	if err != nil {
@@ -192,6 +194,7 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 		connection.Write(req)
 		received := make([]byte, 1024)
 		n, err := connection.Read(received)
+		println("Announce response size = ",n)
 		if err != nil {
 			println("Announce Read data failed:", err.Error())
 		} else {
@@ -227,12 +230,16 @@ func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
 	urls := torrent.Announce
 
 	var peers []Peer
+	cnt := 0
 	for i,_ := range urls {
 		if urls[i][0:3] == "udp" {
-			go handleConnection(i, buff, torrent, &peers)
+			cnt++
+			handleConnection(i, buff, torrent, &peers)
+		}
+		if(cnt > 3){
+			break
 		}
 	}
-	time.Sleep(15 * time.Second)
 	getUniquePeers(&peers)
 
 	return peers
