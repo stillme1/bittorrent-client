@@ -14,23 +14,6 @@ import (
 
 var peer_id []byte
 
-type connResp struct {
-	action        uint32
-	transactionId uint32
-	connectionId  uint64
-}
-type Peer struct {
-	ip   string
-	port uint16
-}
-type annResp struct {
-	action        uint32
-	transactionId uint32
-	seeders       uint32
-	leechers      uint32
-	peers         []Peer
-}
-
 func buildAnnounceRequest(connectionId uint64, torrent *gotorrentparser.Torrent, p uint16) []byte {
 	res := make([]byte, 98)
 
