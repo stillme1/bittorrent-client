@@ -26,12 +26,40 @@ func messageType(peerConnection *PeerConnection) (int32, int32, error) {
 	return int32(binary.BigEndian.Uint32(buff1)), int32(binary.BigEndian.Uint32(buff2)), nil
 }
 
-func handleHave(peerConnection *PeerConnection) {
-	// TODO
+func handleHave(peerConnection *PeerConnection, length int32) error {
+	peerConnection.conn.SetDeadline(time.Now().Add(3 * time.Second))
+	defer peerConnection.conn.SetDeadline(time.Time{})
+
+	buff := make([]byte, length)
+	_,err := io.ReadFull(peerConnection.conn, buff)
+	if(err != nil) {
+		return err
+	}
+	index := int32(binary.BigEndian.Uint32(buff))
+	peerConnection.bitfield[index] = true
+
+	return nil
 }
-func handleBitfield(peerConnection *PeerConnection) {
-	// TODO
+
+func handleBitfield(peerConnection *PeerConnection, length int32) error {
+	peerConnection.conn.SetDeadline(time.Now().Add(3 * time.Second))
+	defer peerConnection.conn.SetDeadline(time.Time{})
+
+	buff := make([]byte, length)
+	_,err := io.ReadFull(peerConnection.conn, buff)
+	if(err != nil) {
+		return err
+	}
+	for i, j := range buff {
+		for bit := 0; bit < 8; bit++ {
+			if((j & (1 << bit) != 0) && ((i+1)*8 - bit - 1 < len(peerConnection.bitfield))) {
+				peerConnection.bitfield[(i+1)*8 - bit - 1] = true
+			}
+		}
+	}
+	return nil
 }
+
 func handleCancel(peerConnection *PeerConnection) {
 	// TODO
 }
@@ -76,10 +104,18 @@ func handlePeerConnection(peerConnection *PeerConnection) {
 		peerConnection.interested = false
 	case 4:
 		// have
-		// TODO
+		err = handleHave(peerConnection, msgLength-1)
+		if(err != nil) {
+			peerConnection.conn.Close()
+			return
+		}
 	case 5:
 		// bitfield
-		// TODO
+		err = handleBitfield(peerConnection, msgLength-1)
+		if(err != nil) {
+			peerConnection.conn.Close()
+			return
+		}
 	case 6:
 		// request
 		// TODO

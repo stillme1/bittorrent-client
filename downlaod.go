@@ -18,9 +18,9 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peer
 	conn.Write(buildHandshake(torrent.InfoHash, peedId))
 
 	conn.SetDeadline(time.Now().Add(3*time.Second))
+	defer conn.SetDeadline(time.Time{})
 	resp := make([]byte, 68)
 	_,err = io.ReadFull(conn, resp)
-	conn.SetDeadline(time.Time{})
 
 	if err != nil {
 		return false;

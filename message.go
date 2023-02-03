@@ -23,20 +23,21 @@ func buildHandshake(infoHash string, peerId []byte) []byte {
 
 	// peer_id
 	copy(req[48:], peerId)
-
+	
 	return req
 }
 
-func buildKeepAlive() []byte {
+func sendKeepAlive(peerConn *PeerConnection) error {
 	req := make([]byte, 4)
 
 	// length
 	copy(req[0:], []byte{0, 0, 0, 0})
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildChoke() []byte {
+func sendChoke(peerConn *PeerConnection) error {
 	req := make([]byte, 5)
 
 	// length
@@ -45,10 +46,11 @@ func buildChoke() []byte {
 	// id
 	copy(req[4:], []byte{0})
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildUnchoke() []byte {
+func sendUnchoke(peerConn *PeerConnection) error {
 	req := make([]byte, 5)
 
 	// length
@@ -57,10 +59,11 @@ func buildUnchoke() []byte {
 	// id
 	copy(req[4:], []byte{1})
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildInterested() []byte {
+func sendInterested(peerConn *PeerConnection) error {
 	req := make([]byte, 5)
 
 	// length
@@ -69,10 +72,11 @@ func buildInterested() []byte {
 	// id
 	copy(req[4:], []byte{2})
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildNotInterested() []byte {
+func sendNotInterested(peerConn *PeerConnection) error {
 	req := make([]byte, 5)
 
 	// length
@@ -81,10 +85,11 @@ func buildNotInterested() []byte {
 	// id
 	copy(req[4:], []byte{3})
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildHave(index uint32) []byte {
+func sendHave(peerConn *PeerConnection, index uint32) error {
 	req := make([]byte, 9)
 
 	// length
@@ -98,10 +103,11 @@ func buildHave(index uint32) []byte {
 	binary.BigEndian.PutUint32(indexBytes, index)
 	copy(req[5:], indexBytes)
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildBitfield(bitfield []byte) []byte {
+func sendBitfield(peerConn *PeerConnection, bitfield []byte) error {
 	req := make([]byte, 5+len(bitfield))
 
 	// length
@@ -115,10 +121,11 @@ func buildBitfield(bitfield []byte) []byte {
 	// bitfield
 	copy(req[5:], bitfield)
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildRequest(index uint32, begin uint32, length uint32) []byte {
+func sendRequest(peerConn *PeerConnection, index uint32, offset uint32, length uint32) error {
 	req := make([]byte, 17)
 
 	// length
@@ -132,20 +139,21 @@ func buildRequest(index uint32, begin uint32, length uint32) []byte {
 	binary.BigEndian.PutUint32(indexBytes, index)
 	copy(req[5:], indexBytes)
 
-	// begin
-	beginBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(beginBytes, begin)
-	copy(req[9:], beginBytes)
+	// offset
+	offsetBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(offsetBytes, offset)
+	copy(req[9:], offsetBytes)
 
 	// length
 	lengthBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBytes, length)
 	copy(req[13:], lengthBytes)
-
-	return req
+	
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildPiece(index uint32, begin uint32, block []byte) []byte {
+func sendPiece(peerConn *PeerConnection, index uint32, offset uint32, block []byte) error {
 	req := make([]byte, 13+len(block))
 
 	// length
@@ -161,18 +169,19 @@ func buildPiece(index uint32, begin uint32, block []byte) []byte {
 	binary.BigEndian.PutUint32(indexBytes, index)
 	copy(req[5:], indexBytes)
 
-	// begin
-	beginBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(beginBytes, begin)
-	copy(req[9:], beginBytes)
+	// offset
+	offsetBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(offsetBytes, offset)
+	copy(req[9:], offsetBytes)
 
 	// block
 	copy(req[13:], block)
-
-	return req
+	
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildCancel(index uint32, begin uint32, length uint32) []byte {
+func sendCancel(peerConn *PeerConnection, index uint32, offset uint32, length uint32) error {
 	req := make([]byte, 17)
 
 	// length
@@ -186,20 +195,21 @@ func buildCancel(index uint32, begin uint32, length uint32) []byte {
 	binary.BigEndian.PutUint32(indexBytes, index)
 	copy(req[5:], indexBytes)
 
-	// begin
-	beginBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(beginBytes, begin)
-	copy(req[9:], beginBytes)
+	// offset
+	offsetBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(offsetBytes, offset)
+	copy(req[9:], offsetBytes)
 
 	// length
 	lengthBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBytes, length)
 	copy(req[13:], lengthBytes)
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }
 
-func buildPort(port uint16) []byte {
+func sendPort(peerConn *PeerConnection, port uint16) error {
 	req := make([]byte, 7)
 
 	// length
@@ -213,5 +223,6 @@ func buildPort(port uint16) []byte {
 	binary.BigEndian.PutUint16(portBytes, port)
 	copy(req[5:], portBytes)
 
-	return req
+	_, err := peerConn.conn.Write(req)
+	return err
 }

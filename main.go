@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// partsing the torrent file using go-torrent-parser
-	torrent,err := gotorrentparser.Parse(file)
+	torrent,err := gotorrentparser.ParseFromFile(arg[0])
 	if err != nil {
 		panic(err)
 	}
@@ -51,10 +51,10 @@ func main() {
 	for _, i := range peers {
 		go handShake(torrent, i, PEER_ID , &PeerConnection);
 	}
-	time.Sleep(10*time.Second)
+	time.Sleep(12*time.Second)
 
 	// getting the bitfield of each peer
 	for _, i := range PeerConnection {
-		i.bitfield = make([]byte, len(pieces))
+		i.bitfield = make([]bool, len(pieces))
 	}
 }

@@ -10,7 +10,7 @@ type PeerConnection struct {
 	peerId []byte
 	choked bool
 	interested bool
-	bitfield []byte
+	bitfield []bool
 }
 
 type bencodeInfo struct {
