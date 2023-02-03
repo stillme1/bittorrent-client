@@ -45,16 +45,28 @@ func main() {
 
 	// getting the peers from the UDP trackers
 	peers := getPeer(torrent, PEER_ID)
-	var PeerConnection []PeerConnection		// live connection for each active peer
+	var peerConnection []PeerConnection		// live connection for each active peer
 
 	// handshaking with each peer
 	for _, i := range peers {
-		go handShake(torrent, i, PEER_ID , &PeerConnection);
+		go handShake(torrent, i, PEER_ID , &peerConnection);
 	}
 	time.Sleep(12*time.Second)
 
 	// getting the bitfield of each peer
-	for _, i := range PeerConnection {
-		i.bitfield = make([]bool, len(pieces))
+	for i,_ := range peerConnection {
+		peerConnection[i].bitfield = make([]bool, len(pieces))
 	}
+
+	// array to store current state of pieces
+	// 0 -> not started
+	// 1 -> completed
+	// 2 -> in progress
+	status := make([]int, len(pieces))
+
+	for i,_ := range peerConnection {
+		go startDownload(&peerConnection[i], &status)
+		println(peerConnection[i].peer.ip)
+	}
+	time.Sleep(10 * time.Second)
 }

@@ -29,3 +29,15 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peer
 	*peerConnection = append(*peerConnection, PeerConnection{conn, peer, resp[48:], true, false, nil})
 	return true;
 }
+
+func startDownload(peerConnection *PeerConnection, status *[]int) error {
+	
+	for true {
+		cont := handlePeerConnection(peerConnection)
+		if(!cont) {
+			time.Sleep(2*time.Second)
+			sendKeepAlive(peerConnection)
+		}
+	}
+	return nil
+}
