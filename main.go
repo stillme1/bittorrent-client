@@ -34,14 +34,14 @@ func main() {
 	piecesString := info.Info.Pieces
 	pieces := make([]Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
-		pieces[i].index = i / 20
+		pieces[i/20].index = i / 20
 		for j := 0; j < 20; j++ {
-			pieces[i].hash[j] = piecesString[i+j]
+			pieces[i/20].hash[j] = piecesString[i+j]
 		}
-		if(i+20 == len(piecesString) - 20){
-			pieces[i].length = lastpieceLength
+		if(i+20 == len(piecesString)){
+			pieces[i/20].length = lastpieceLength
 		} else {
-			pieces[i].length = info.Info.PieceLength
+			pieces[i/20].length = info.Info.PieceLength
 		}
 	}
 
@@ -62,16 +62,25 @@ func main() {
 	time.Sleep(12*time.Second)
 
 	// getting the bitfield of each peer
-	for i,_ := range peerConnection {
+	for i := range peerConnection {
 		peerConnection[i].bitfield = make([]bool, len(pieces))
 	}
 
 	workQueue := make(chan *Piece, len(pieces))
 	finishedQueue := make(chan *Piece, len(pieces))
 
-	for i,_ := range peerConnection {
-		go startDownload(&peerConnection[i], workQueue, finishedQueue)
-		println(peerConnection[i].peer.ip)
+	for i := range pieces {
+		workQueue <- &pieces[i]
 	}
-	time.Sleep(10 * time.Second)
+
+	for i := range peerConnection {
+		go startDownload(&peerConnection[i], workQueue, finishedQueue)
+	}
+	// println(peerConnection[0].peer.ip , " ", peerConnection[0].peer.port)
+	// go startDownload(&peerConnection[0], workQueue, finishedQueue)
+
+	for len(finishedQueue) != len(pieces) {
+		println("download = ", len(finishedQueue) / len(pieces) * 100, "%")
+		time.Sleep(5*time.Second)
+	}
 }

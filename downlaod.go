@@ -31,12 +31,24 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peer
 	return true;
 }
 
-func requestPiece(peerConnection *PeerConnection, piece *Piece) []byte{
-	for i := 0; i < piece.length; i += 300 {
-		blockSize := min(300, uint32(piece.length - i))
+func handleAllPendingMessages(peerConnection *PeerConnection, buff *[]byte) {
+	curr := true
+	for curr {
+		curr = handlePeerConnection(peerConnection, buff)
+	}
+}
+
+func requestPiece(peerConnection *PeerConnection, piece *Piece) bool {
+	buff := make([]byte, piece.length)
+	for i := 0; i < piece.length; i += 0x00004000 {
+		blockSize := min(0x00004000, uint32(piece.length - i))
 		block := make([]byte, blockSize)
 		sendRequest(peerConnection, uint32(piece.index), uint32(i), blockSize)
+		handleAllPendingMessages(peerConnection, &block)
+		copy(buff[i:], block)
 	}
+	piece.data = buff
+	return validatePiece(piece)
 }
 
 func validatePiece(piece *Piece) bool {
@@ -44,7 +56,8 @@ func validatePiece(piece *Piece) bool {
 }
 
 func startDownload(peerConnection *PeerConnection, workQueue chan *Piece, finished chan *Piece) error {
-
+	var temp []byte
+	handleAllPendingMessages(peerConnection, &temp)
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
 	
@@ -53,8 +66,14 @@ func startDownload(peerConnection *PeerConnection, workQueue chan *Piece, finish
 			workQueue <- piece
 			continue
 		}
-		buff := requestPiece(peerConnection, piece)
-
+		println("Requesting piece: " + strconv.Itoa(piece.index))
+		if(requestPiece(peerConnection, piece)) {
+			finished <- piece
+			println("recieved piece: " + strconv.Itoa(piece.index))
+		} else {
+			workQueue <- piece
+			println("failed to recieve piece: " + strconv.Itoa(piece.index))
+		}
 	}
 	return nil
 }
