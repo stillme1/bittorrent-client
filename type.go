@@ -13,6 +13,15 @@ type PeerConnection struct {
 	bitfield []bool
 }
 
+type Piece struct {
+	index int
+	length int
+	hash [20]byte
+	done bool
+	data []byte
+}
+	
+
 type bencodeInfo struct {
 	Pieces      string `bencode:"pieces"`
 	PieceLength int    `bencode:"piece length"`

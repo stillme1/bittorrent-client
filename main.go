@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"math/rand"
 	"os"
 	"time"
@@ -31,10 +30,19 @@ func main() {
 	}
 
 	// getting the hash of each piece as hexadecimal string
-	var pieces []string
+	lastpieceLength := info.Info.Length % info.Info.PieceLength
 	piecesString := info.Info.Pieces
+	pieces := make([]Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
-		pieces = append(pieces, hex.EncodeToString([]byte(piecesString[i:i+20])))
+		pieces[i].index = i / 20
+		for j := 0; j < 20; j++ {
+			pieces[i].hash[j] = piecesString[i+j]
+		}
+		if(i+20 == len(piecesString) - 20){
+			pieces[i].length = lastpieceLength
+		} else {
+			pieces[i].length = info.Info.PieceLength
+		}
 	}
 
 	// partsing the torrent file using go-torrent-parser
@@ -58,14 +66,11 @@ func main() {
 		peerConnection[i].bitfield = make([]bool, len(pieces))
 	}
 
-	// array to store current state of pieces
-	// 0 -> not started
-	// 1 -> completed
-	// 2 -> in progress
-	status := make([]int, len(pieces))
+	workQueue := make(chan *Piece, len(pieces))
+	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i,_ := range peerConnection {
-		go startDownload(&peerConnection[i], &status)
+		go startDownload(&peerConnection[i], workQueue, finishedQueue)
 		println(peerConnection[i].peer.ip)
 	}
 	time.Sleep(10 * time.Second)

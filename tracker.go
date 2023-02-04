@@ -150,7 +150,7 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 	}
 	defer connection.Close()
 
-	err = connection.SetReadDeadline(time.Now().Add(15 * time.Second))
+	err = connection.SetDeadline(time.Now().Add(5 * time.Second))
 	if err != nil {
 		println("Connection SetReadDeadline, Error = ", err.Error())
 		return
@@ -207,17 +207,14 @@ func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
 	peer_id = peerId
 	buff := buildConnReq()
 
-
 	urls := torrent.Announce
 
 	var peers []Peer
-	cnt := 0
 	for i,_ := range urls {
 		if urls[i][0:3] == "udp" {
-			cnt++
 			handleConnection(i, buff, torrent, &peers)
 		}
-		if(cnt > 3){
+		if(i > 3){
 			break
 		}
 	}

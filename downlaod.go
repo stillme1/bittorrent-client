@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha1"
 	"io"
 	"net"
 	"strconv"
@@ -30,14 +31,30 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peer
 	return true;
 }
 
-func startDownload(peerConnection *PeerConnection, status *[]int) error {
+func requestPiece(peerConnection *PeerConnection, piece *Piece) []byte{
+	for i := 0; i < piece.length; i += 300 {
+		blockSize := min(300, uint32(piece.length - i))
+		block := make([]byte, blockSize)
+		sendRequest(peerConnection, uint32(piece.index), uint32(i), blockSize)
+	}
+}
+
+func validatePiece(piece *Piece) bool {
+	return sha1.Sum(piece.data) == piece.hash
+}
+
+func startDownload(peerConnection *PeerConnection, workQueue chan *Piece, finished chan *Piece) error {
+
+	sendUnchoke(peerConnection)
+	sendInterested(peerConnection)
 	
-	for true {
-		cont := handlePeerConnection(peerConnection)
-		if(!cont) {
-			time.Sleep(2*time.Second)
-			sendKeepAlive(peerConnection)
+	for piece := range workQueue {
+		if !peerConnection.bitfield[piece.index] {
+			workQueue <- piece
+			continue
 		}
+		buff := requestPiece(peerConnection, piece)
+
 	}
 	return nil
 }
