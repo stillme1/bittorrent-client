@@ -9,6 +9,8 @@ import (
 	bencode "github.com/jackpal/bencode-go"
 )
 
+var piecelength = 0
+
 func main() {
 	// Generating a random peer id
 	PEER_ID := make([]byte, 20)
@@ -28,6 +30,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	piecelength = info.Info.PieceLength
 
 	// getting the hash of each piece as hexadecimal string
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
@@ -61,6 +64,8 @@ func main() {
 	}
 	time.Sleep(12*time.Second)
 
+	println("Number of pieces = ", len(pieces))
+
 	// getting the bitfield of each peer
 	for i := range peerConnection {
 		peerConnection[i].bitfield = make([]bool, len(pieces))
@@ -79,8 +84,13 @@ func main() {
 	// println(peerConnection[0].peer.ip , " ", peerConnection[0].peer.port)
 	// go startDownload(&peerConnection[0], workQueue, finishedQueue)
 
+
 	for len(finishedQueue) != len(pieces) {
-		println("download = ", len(finishedQueue) / len(pieces) * 100, "%")
+		println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
 		time.Sleep(5*time.Second)
 	}
+}
+
+func float(i int) {
+	panic("unimplemented")
 }

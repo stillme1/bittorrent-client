@@ -47,7 +47,8 @@ func requestPiece(peerConnection *PeerConnection, piece *Piece) bool {
 		handleAllPendingMessages(peerConnection, &block)
 		copy(buff[i:], block)
 	}
-	piece.data = buff
+	extraBuff := make([]byte, piecelength - piece.length)
+	piece.data = append(buff, extraBuff...)
 	return validatePiece(piece)
 }
 
@@ -69,7 +70,7 @@ func startDownload(peerConnection *PeerConnection, workQueue chan *Piece, finish
 		println("Requesting piece: " + strconv.Itoa(piece.index))
 		if(requestPiece(peerConnection, piece)) {
 			finished <- piece
-			println("recieved piece: " + strconv.Itoa(piece.index))
+			println("recieved piece: ", piece.index, " ", len(finished))
 		} else {
 			workQueue <- piece
 			println("failed to recieve piece: " + strconv.Itoa(piece.index))
