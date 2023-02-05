@@ -64,8 +64,6 @@ func main() {
 	}
 	time.Sleep(12*time.Second)
 
-	println("Number of pieces = ", len(pieces))
-
 	// getting the bitfield of each peer
 	for i := range peerConnection {
 		peerConnection[i].bitfield = make([]bool, len(pieces))
@@ -75,22 +73,16 @@ func main() {
 	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
-		workQueue <- &pieces[i]
+		workQueue <- &pieces[len(pieces)-i-1]
 	}
 
 	for i := range peerConnection {
 		go startDownload(&peerConnection[i], workQueue, finishedQueue)
 	}
-	// println(peerConnection[0].peer.ip , " ", peerConnection[0].peer.port)
-	// go startDownload(&peerConnection[0], workQueue, finishedQueue)
 
 
 	for len(finishedQueue) != len(pieces) {
 		println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
-		time.Sleep(5*time.Second)
+		time.Sleep(10*time.Second)
 	}
-}
-
-func float(i int) {
-	panic("unimplemented")
 }

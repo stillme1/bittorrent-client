@@ -39,6 +39,7 @@ func handleAllPendingMessages(peerConnection *PeerConnection, buff *[]byte) {
 }
 
 func requestPiece(peerConnection *PeerConnection, piece *Piece) bool {
+	
 	buff := make([]byte, piece.length)
 	for i := 0; i < piece.length; i += 0x00004000 {
 		blockSize := min(0x00004000, uint32(piece.length - i))
@@ -47,8 +48,6 @@ func requestPiece(peerConnection *PeerConnection, piece *Piece) bool {
 		handleAllPendingMessages(peerConnection, &block)
 		copy(buff[i:], block)
 	}
-	extraBuff := make([]byte, piecelength - piece.length)
-	piece.data = append(buff, extraBuff...)
 	return validatePiece(piece)
 }
 
