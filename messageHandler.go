@@ -14,7 +14,12 @@ func messageType(peerConnection *PeerConnection) (int32, int32, error) {
 	buff1 := make([]byte, 4)
 	_,err := io.ReadFull(peerConnection.conn, buff1)
 	if(err != nil) {
-		return -1, -1, err
+		return -1, -1, nil
+	}
+
+	msglen := int32(binary.BigEndian.Uint32(buff1))
+	if msglen == 0 {
+		return 0, -1, nil
 	}
 
 	buff2 := make([]byte, 1)
@@ -22,7 +27,10 @@ func messageType(peerConnection *PeerConnection) (int32, int32, error) {
 	if(err != nil) {
 		return -1, -1, err
 	}
-	return int32(binary.BigEndian.Uint32(buff1)), int32(uint32(buff2[0])), nil
+
+	msgId := int32(uint32(buff2[0]))
+
+	return msglen, msgId, nil
 }
 
 func handleHave(peerConnection *PeerConnection, length int32) error {
@@ -70,26 +78,35 @@ func handlePort(peerConnection *PeerConnection) {
 func handleRequest(peerConnection *PeerConnection) {
 	// TODO
 }
-func handlePiece(peerConnection *PeerConnection, length int) ([] byte , error) {
-	peerConnection.conn.SetDeadline(time.Now().Add(3 * time.Second))
+func handlePiece(peerConnection *PeerConnection, length int, piece []*Piece) error {
+	peerConnection.conn.SetDeadline(time.Now().Add(5 * time.Second))
 	defer peerConnection.conn.SetDeadline(time.Time{})
 
 	buff := make([]byte, length)
 	_,err := io.ReadFull(peerConnection.conn, buff)
 	if(err != nil) {
-		return nil, err
+		return err
 	}
-	return buff[8:], nil
+	ind := int32(binary.BigEndian.Uint32(buff[0:4]))
+	offset := int32(binary.BigEndian.Uint32(buff[4:8]))
+	copy(piece[ind].data[offset:], buff[8:])
+	return nil
 }
 
-func handlePeerConnection(peerConnection *PeerConnection, buff *[]byte) bool{
+func handlePeerConnection(peerConnection *PeerConnection, piece []*Piece) (bool, error){
 	msgLength, msgId, err := messageType(peerConnection)
 
-	if(err == io.EOF || msgLength == -1 || msgId == -1) {
-		return false
+	if(err != nil) {
+		return false, err
+	}
+	if(msgLength == -1 && msgId == -1 && err == nil) {
+		return false, nil
 	}
 
 	switch msgId {
+	case -1:
+		// keep alive
+		return true, nil
 	case 0:
 		// choke
 		peerConnection.choked = true
@@ -107,27 +124,25 @@ func handlePeerConnection(peerConnection *PeerConnection, buff *[]byte) bool{
 		err = handleHave(peerConnection, msgLength-1)
 		if(err != nil) {
 			peerConnection.conn.Close()
-			return false
+			return false, err
 		}
 	case 5:
 		// bitfield
 		err = handleBitfield(peerConnection, msgLength-1)
 		if(err != nil) {
 			peerConnection.conn.Close()
-			return false
+			return false, err
 		}
 	case 6:
 		// request
 		// TODO
 	case 7:
 		// piece
-		res, err := handlePiece(peerConnection, int(msgLength-1))
+		err := handlePiece(peerConnection, int(msgLength-1), piece)
 		if(err != nil) {
-			buff = nil
-			return false
+			peerConnection.conn.Close()
+			return false, err
 		}
-		*buff = res
-		return true
 	case 8:
 		// cancel
 		// TODO
@@ -135,13 +150,16 @@ func handlePeerConnection(peerConnection *PeerConnection, buff *[]byte) bool{
 		// port
 		// TODO
 	default:
+		println("Unknown message id: ", msgId, " with length: ", msgLength, "to the peer: ", peerConnection.peer.ip , ":", peerConnection.peer.port)
 		peerConnection.conn.SetDeadline(time.Now().Add(3 * time.Second))
 		defer peerConnection.conn.SetDeadline(time.Time{})
 		buff := make([]byte, msgLength-1)
 		_,err := io.ReadFull(peerConnection.conn, buff)
-		return err == nil
-
+		if(err != nil) {
+			peerConnection.conn.Close()
+			return false, err
+		}
 	}
 	
-	return true
+	return true, nil
 }

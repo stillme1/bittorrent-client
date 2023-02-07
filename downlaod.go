@@ -31,49 +31,58 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peer
 	return true;
 }
 
-func handleAllPendingMessages(peerConnection *PeerConnection, buff *[]byte) {
+func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece) bool {
 	curr := true
+	var err error
 	for curr {
-		curr = handlePeerConnection(peerConnection, buff)
+		curr, err = handlePeerConnection(peerConnection, piece)
 	}
+	return err == nil
 }
 
-func requestPiece(peerConnection *PeerConnection, piece *Piece) bool {
-	
-	buff := make([]byte, piece.length)
-	for i := 0; i < piece.length; i += 0x00004000 {
-		blockSize := min(0x00004000, uint32(piece.length - i))
-		block := make([]byte, blockSize)
-		sendRequest(peerConnection, uint32(piece.index), uint32(i), blockSize)
-		handleAllPendingMessages(peerConnection, &block)
-		copy(buff[i:], block)
+func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
+	active := true
+	for i := 0; i < piece[k].length && active; i += 0x00004000 {
+		blockSize := min(0x00004000, uint32(piece[k].length - i))
+		sendRequest(peerConnection, uint32(piece[k].index), uint32(i), blockSize)
+		active = handleAllPendingMessages(peerConnection, piece)
 	}
-	return validatePiece(piece)
+	return validatePiece(piece[k]) && active
 }
 
 func validatePiece(piece *Piece) bool {
-	return sha1.Sum(piece.data) == piece.hash
+	res := sha1.Sum(piece.data) == piece.hash
+	if(!res) {
+		println("invalid piece", piece.index)
+	}
+	return res
 }
 
-func startDownload(peerConnection *PeerConnection, workQueue chan *Piece, finished chan *Piece) error {
-	var temp []byte
-	handleAllPendingMessages(peerConnection, &temp)
+func startDownload(peerConnection *PeerConnection, pieces []*Piece, workQueue chan *Piece, finished chan *Piece) {
+	handleAllPendingMessages(peerConnection, pieces)
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
 	
 	for piece := range workQueue {
-		if !peerConnection.bitfield[piece.index] {
+		err := sendKeepAlive(peerConnection)
+		if(err != nil) {
+			return
+		}
+		if !peerConnection.bitfield[piece.index] || peerConnection.choked {
+			if(peerConnection.choked) {
+				handleAllPendingMessages(peerConnection, pieces)
+			}
 			workQueue <- piece
 			continue
 		}
 		println("Requesting piece: " + strconv.Itoa(piece.index))
-		if(requestPiece(peerConnection, piece)) {
+		if(requestPiece(peerConnection, pieces, uint32(piece.index))) {
 			finished <- piece
 			println("recieved piece: ", piece.index, " ", len(finished))
+			sendHave(peerConnection, uint32(piece.index))
 		} else {
 			workQueue <- piece
-			println("failed to recieve piece: " + strconv.Itoa(piece.index))
 		}
 	}
-	return nil
+	return
 }

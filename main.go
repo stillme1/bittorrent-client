@@ -35,17 +35,21 @@ func main() {
 	// getting the hash of each piece as hexadecimal string
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
 	piecesString := info.Info.Pieces
-	pieces := make([]Piece, len(piecesString)/20)
+	pieces := make([]*Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
-		pieces[i/20].index = i / 20
+		var temp Piece
+		temp.index = i / 20
 		for j := 0; j < 20; j++ {
-			pieces[i/20].hash[j] = piecesString[i+j]
+			temp.hash[j] = piecesString[i+j]
 		}
 		if(i+20 == len(piecesString)){
-			pieces[i/20].length = lastpieceLength
+			temp.length = lastpieceLength
 		} else {
-			pieces[i/20].length = info.Info.PieceLength
+			temp.length = info.Info.PieceLength
 		}
+		temp.data = make([]byte, temp.length)
+		pieces[i/20] = &temp
+
 	}
 
 	// partsing the torrent file using go-torrent-parser
@@ -73,12 +77,14 @@ func main() {
 	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
-		workQueue <- &pieces[len(pieces)-i-1]
+		workQueue <- pieces[i]
 	}
 
 	for i := range peerConnection {
-		go startDownload(&peerConnection[i], workQueue, finishedQueue)
+		go startDownload(&peerConnection[i], pieces, workQueue, finishedQueue)
 	}
+
+	// startDownload(&peerConnection[0], pieces, workQueue, finishedQueue)
 
 
 	for len(finishedQueue) != len(pieces) {
