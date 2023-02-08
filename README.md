@@ -21,6 +21,7 @@ Currently working on:
 
 
 Still exploring:
+- Controlling max download speed
 - Upload
 - NAT traversal
 - DHT
