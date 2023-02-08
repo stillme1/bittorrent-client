@@ -10,10 +10,11 @@ import (
 )
 
 var piecelength = 0
+var PEER_ID = make([]byte, 20)
 
 func main() {
 	// Generating a random peer id
-	PEER_ID := make([]byte, 20)
+	PEER_ID = make([]byte, 20)
 	rand.Read(PEER_ID)
 
 	// getting the path to torrent file as an argument
@@ -81,14 +82,20 @@ func main() {
 	}
 
 	for i := range peerConnection {
-		go startDownload(&peerConnection[i], pieces, workQueue, finishedQueue)
+		go startDownload(&peerConnection[i], torrent, pieces, workQueue, finishedQueue)
 	}
-
-	// startDownload(&peerConnection[0], pieces, workQueue, finishedQueue)
 
 
 	for len(finishedQueue) != len(pieces) {
 		println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
 		time.Sleep(10*time.Second)
 	}
+
+	data := make([]byte, info.Info.Length)
+
+	for i,_ := range pieces {
+		copy(data[(i * info.Info.PieceLength):], pieces[i].data)
+	}
+
+	os.WriteFile(info.Info.Name, data, os.FileMode(0777))
 }

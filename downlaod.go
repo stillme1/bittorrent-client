@@ -10,6 +10,26 @@ import (
 	gotorrentparser "github.com/j-muller/go-torrent-parser"
 )
 
+func rebuildHandShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte, peerConnection *PeerConnection) bool {
+	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
+	if err != nil {
+		return false;
+	}
+
+	conn.Write(buildHandshake(torrent.InfoHash, peedId))
+
+	conn.SetDeadline(time.Now().Add(5*time.Second))
+	defer conn.SetDeadline(time.Time{})
+	resp := make([]byte, 68)
+	_,err = io.ReadFull(conn, resp)
+
+	if err != nil {
+		return false;
+	}
+	peerConnection.conn = conn
+	return true
+}
+
 func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte , peerConnection *[]PeerConnection) bool {
 	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
 	if err != nil {
@@ -40,14 +60,14 @@ func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece) bo
 	return err == nil
 }
 
-func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
+func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) (bool, bool) {
 	active := true
 	for i := 0; i < piece[k].length && active; i += 0x00004000 {
 		blockSize := min(0x00004000, uint32(piece[k].length - i))
 		sendRequest(peerConnection, uint32(piece[k].index), uint32(i), blockSize)
-		active = handleAllPendingMessages(peerConnection, piece)
 	}
-	return validatePiece(piece[k]) && active
+	active = handleAllPendingMessages(peerConnection, piece)
+	return validatePiece(piece[k]), active
 }
 
 func validatePiece(piece *Piece) bool {
@@ -58,30 +78,41 @@ func validatePiece(piece *Piece) bool {
 	return res
 }
 
-func startDownload(peerConnection *PeerConnection, pieces []*Piece, workQueue chan *Piece, finished chan *Piece) {
-	handleAllPendingMessages(peerConnection, pieces)
+func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces []*Piece, workQueue chan *Piece, finished chan *Piece) {
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
+	handleAllPendingMessages(peerConnection, pieces)
 	
 	for piece := range workQueue {
-		err := sendKeepAlive(peerConnection)
-		if(err != nil) {
-			return
-		}
 		if !peerConnection.bitfield[piece.index] || peerConnection.choked {
-			if(peerConnection.choked) {
-				handleAllPendingMessages(peerConnection, pieces)
-			}
 			workQueue <- piece
+			if(peerConnection.choked) {
+				active := handleAllPendingMessages(peerConnection, pieces)
+				if(!active) {
+					peerConnection.conn.Close()
+					rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+					if !rebuilt {
+						return
+					}
+				}
+			}
 			continue
 		}
 		println("Requesting piece: " + strconv.Itoa(piece.index))
-		if(requestPiece(peerConnection, pieces, uint32(piece.index))) {
+		valid, active := requestPiece(peerConnection, pieces, uint32(piece.index))
+		if (valid) {
 			finished <- piece
 			println("recieved piece: ", piece.index, " ", len(finished))
 			sendHave(peerConnection, uint32(piece.index))
 		} else {
 			workQueue <- piece
+		}
+		if(!active) {
+			peerConnection.conn.Close()
+			rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+			if !rebuilt {
+				return
+			}
 		}
 	}
 	return

@@ -210,14 +210,9 @@ func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
 	urls := torrent.Announce
 
 	var peers []Peer
-	cnt := 0
 	for i := range urls {
 		if urls[i][0:3] == "udp" {
 			handleConnection(i, buff, torrent, &peers)
-			cnt++
-		}
-		if(cnt > 3){
-			break
 		}
 	}
 	getUniquePeers(&peers)
