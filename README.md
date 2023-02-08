@@ -12,13 +12,16 @@ Current status:
 
 
 Currently working on:
+- Requesting multiple pieces from the same peer concurrently to allow faster download.
 - Downloading multifile torrent
 - Keep looking for new peers, after some intervals.
 - Reestablishing dropped connection with peers.
 - Adding support for WS and HTTP trackers.
+- Actually writing the downloaded buffer to a file. (LOL)
 
 
 Still exploring:
+- Controlling max download speed
 - Upload
 - NAT traversal
 - DHT
