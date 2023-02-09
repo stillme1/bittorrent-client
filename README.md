@@ -6,18 +6,17 @@ Current status:
 - Only download supported (leeching)
 - Can't download multifile torrent
 - Supports only UDP tracker
-- Doesn't attempt to reestablish dropped TCP connection with peers.
 - No NAT traversal
 - Can't be used with magnet link, and also no support for DHT.
+- Tries to reestablish dropped connection with peers, but currently it does't look for new peers.
 
 
 Currently working on:
 - Requesting multiple pieces from the same peer concurrently to allow faster download.
 - Downloading multifile torrent
 - Keep looking for new peers, after some intervals.
-- Reestablishing dropped connection with peers.
 - Adding support for WS and HTTP trackers.
-- Actually writing the downloaded buffer to a file. (LOL)
+- Adding a dynamic timeout for peers, based on the size of a piece and health of the network.
 
 
 Still exploring:
