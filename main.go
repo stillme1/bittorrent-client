@@ -14,7 +14,6 @@ var PEER_ID = make([]byte, 20)
 
 func main() {
 	// Generating a random peer id
-	PEER_ID = make([]byte, 20)
 	rand.Read(PEER_ID)
 
 	// getting the path to torrent file as an argument
@@ -93,7 +92,7 @@ func main() {
 
 	data := make([]byte, info.Info.Length)
 
-	for i,_ := range pieces {
+	for i:= range pieces {
 		copy(data[(i * info.Info.PieceLength):], pieces[i].data)
 	}
 
