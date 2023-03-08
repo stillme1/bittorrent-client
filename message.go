@@ -150,11 +150,6 @@ func sendRequest(peerConn *PeerConnection, index uint32, offset uint32, length u
 	copy(req[13:], lengthBytes)
 	
 	_, err := peerConn.conn.Write(req)
-	if(err == nil) {
-		println("send request", index, offset, length)
-	} else {
-		println("error = ", err.Error())
-	}
 	return err
 }
 

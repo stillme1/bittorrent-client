@@ -20,12 +20,17 @@ type Piece struct {
 	done bool
 	data []byte
 }
-	
+
+type file struct {
+	Length	int			`bencode:"length"`
+	Path	[]string	`bencode:"path"`
+}
 
 type bencodeInfo struct {
 	Pieces      string `bencode:"pieces"`
 	PieceLength int    `bencode:"piece length"`
 	Length      int    `bencode:"length"`
+	Files       []file `bencode:"files"`
 	Name        string `bencode:"name"`
 }
 

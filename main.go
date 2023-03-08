@@ -33,6 +33,10 @@ func main() {
 	piecelength = info.Info.PieceLength
 
 	// getting the hash of each piece as hexadecimal string
+	for i := range info.Info.Files {
+		info.Info.Length += info.Info.Files[i].Length
+	}
+
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
 	piecesString := info.Info.Pieces
 	pieces := make([]*Piece, len(piecesString)/20)
@@ -51,6 +55,8 @@ func main() {
 		pieces[i/20] = &temp
 
 	}
+	println("pieces size = ", len(pieces))
+	println("last piece length = ", lastpieceLength)
 
 	// partsing the torrent file using go-torrent-parser
 	torrent,err := gotorrentparser.ParseFromFile(arg[0])
