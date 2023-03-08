@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -55,8 +56,6 @@ func main() {
 		pieces[i/20] = &temp
 
 	}
-	println("pieces size = ", len(pieces))
-	println("last piece length = ", lastpieceLength)
 
 	// partsing the torrent file using go-torrent-parser
 	torrent,err := gotorrentparser.ParseFromFile(arg[0])
@@ -92,7 +91,7 @@ func main() {
 
 
 	for len(finishedQueue) != len(pieces) {
-		println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
+		fmt.Println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
 		time.Sleep(10*time.Second)
 	}
 
