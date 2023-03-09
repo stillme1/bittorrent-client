@@ -95,11 +95,9 @@ func main() {
 		time.Sleep(10*time.Second)
 	}
 
-	data := make([]byte, info.Info.Length)
-
-	for i:= range pieces {
-		copy(data[(i * info.Info.PieceLength):], pieces[i].data)
+	if(len(info.Info.Files) == 0) {
+		singleFileWrite(info, pieces)
+	} else {
+		multiFileWrite(info, pieces)
 	}
-
-	os.WriteFile(info.Info.Name, data, os.FileMode(0777))
 }
