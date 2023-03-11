@@ -30,13 +30,13 @@ func rebuildHandShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte
 	return true
 }
 
-func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte, peerConnection *[]PeerConnection) bool {
+func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces []*Piece, workQueue, finished chan *Piece) bool {
 	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
 	if err != nil {
 		return false
 	}
 
-	conn.Write(buildHandshake(torrent.InfoHash, peedId))
+	conn.Write(buildHandshake(torrent.InfoHash, PEER_ID))
 
 	conn.SetDeadline(time.Now().Add(3 * time.Second))
 	defer conn.SetDeadline(time.Time{})
@@ -46,8 +46,10 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte, peerC
 	if err != nil {
 		return false
 	}
-
-	*peerConnection = append(*peerConnection, PeerConnection{conn, peer, resp[48:], true, false, nil})
+	bitfield := make([]bool, len(pieces))
+	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
+	go startDownload(&peerConnection, torrent, pieces, workQueue, finished)
+	activePeers++
 	return true
 }
 
@@ -107,15 +109,15 @@ func validatePiece(piece *Piece) bool {
 	return res
 }
 
-func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces []*Piece, activePeers *int, workQueue chan *Piece, finished chan *Piece) {
-	defer decrementActivePeers(activePeers)
+func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces []*Piece, workQueue, finished chan *Piece) {
+	defer decrementActivePeers()
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
 	handleAllPendingMessages(peerConnection, pieces, 5)
 
 	for {
 		for piece := range workQueue {
-			if !peerConnection.bitfield[piece.index] || peerConnection.choked {
+			if !(*peerConnection.bitfield)[piece.index] || peerConnection.choked {
 				workQueue <- piece
 				if peerConnection.choked {
 					active := handleAllPendingMessages(peerConnection, pieces, 2)

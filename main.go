@@ -10,9 +10,6 @@ import (
 	bencode "github.com/jackpal/bencode-go"
 )
 
-var piecelength = 0
-var PEER_ID = make([]byte, 20)
-
 func main() {
 	// Generating a random peer id
 	rand.Read(PEER_ID)
@@ -65,18 +62,6 @@ func main() {
 
 	// getting the peers from the UDP trackers
 	peers := getPeer(torrent, PEER_ID)
-	var peerConnection []PeerConnection // live connection for each active peer
-
-	// handshaking with each peer
-	for _, i := range peers {
-		go handShake(torrent, i, PEER_ID, &peerConnection)
-	}
-	time.Sleep(12 * time.Second)
-
-	// getting the bitfield of each peer
-	for i := range peerConnection {
-		peerConnection[i].bitfield = make([]bool, len(pieces))
-	}
 
 	workQueue := make(chan *Piece, len(pieces))
 	finishedQueue := make(chan *Piece, len(pieces))
@@ -84,9 +69,10 @@ func main() {
 	for i := range pieces {
 		workQueue <- pieces[i]
 	}
-	activePeers := len(peerConnection)
-	for i := range peerConnection {
-		go startDownload(&peerConnection[i], torrent, pieces, &activePeers, workQueue, finishedQueue)
+
+	// handshaking with each peer
+	for _, i := range peers {
+		go handShake(torrent, i, pieces, workQueue, finishedQueue)
 	}
 
 	for len(finishedQueue) != len(pieces) {
