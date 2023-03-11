@@ -6,3 +6,7 @@ func min(a, b uint32) uint32 {
 	}
 	return b
 }
+
+func decrementActivePeers(activePeers *int) {
+	*activePeers--
+}

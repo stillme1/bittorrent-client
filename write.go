@@ -5,9 +5,14 @@ import (
 	"path/filepath"
 )
 
-func singleFileWrite(info bencodeTorrent, pieces []*Piece) {
+func singleFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
 
-	file, err := os.OpenFile(info.Info.Name, os.O_RDWR|os.O_CREATE, 0777)
+	path += "/" + info.Info.Name
+	err := os.MkdirAll(filepath.Dir(path), 0777)
+	if err != nil {
+		panic("Error creating file"+ err.Error())
+	}
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0777)
     if err != nil {
 		panic("Error creating file"+ err.Error())
     }
@@ -25,22 +30,21 @@ func singleFileWrite(info bencodeTorrent, pieces []*Piece) {
 	}
 }
 
-func multiFileWrite(info bencodeTorrent, pieces []*Piece) {
+func multiFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
 
 	currPiece := 0;
 	offset := int64(0)
 	for _,i:= range info.Info.Files {
-		path := "";
+		filePath := path + "/" + info.Info.Name
 		for _,j:= range i.Path {
-			path += j + "/"
+			filePath += "/" + j
 		}
-		path = path[:len(path)-1]
-		err := os.MkdirAll(filepath.Dir(path), 0777)
+		err := os.MkdirAll(filepath.Dir(filePath), 0777)
 		if err != nil {
 			panic(err)
 		}
 		
-		file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0777)
+		file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0777)
 		if err != nil {
 			panic("Error creating file"+ err.Error())
 		}

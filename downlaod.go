@@ -60,13 +60,36 @@ func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t 
 	return err == nil
 }
 
-func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) (bool, bool) {
+func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
+	block := (piece[k].length + 0x00004000 - 1) / 0x00004000
+	for block > 0{
+		msgLength, msgId, err := messageType(peerConnection, 500)
+		if err != nil || msgLength == -1{
+			return false
+		}
+		if msgId == 7 {
+			active, err := handleMessage(peerConnection, msgId, msgLength, piece)
+			if err != nil || !active {
+				return false
+			}
+			block--
+		} else {
+			active, err := handleMessage(peerConnection, msgId, msgLength, piece)
+			if err != nil || !active {
+				return false
+			}
+		}
+	}
+	return validatePiece(piece[k])
+}
+
+func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) (bool) {
 	for i := 0; i < piece[k].length; i += 0x00004000 {
 		blockSize := min(0x00004000, uint32(piece[k].length-i))
 		sendRequest(peerConnection, uint32(piece[k].index), uint32(i), blockSize)
 	}
-	active := handleAllPendingMessages(peerConnection, piece, 10)
-	return validatePiece(piece[k]), active
+	active := getPiece(peerConnection, piece, k)
+	return active
 }
 
 func validatePiece(piece *Piece) bool {
@@ -77,44 +100,49 @@ func validatePiece(piece *Piece) bool {
 	return res
 }
 
-func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces []*Piece, workQueue chan *Piece, finished chan *Piece) {
+func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces []*Piece, activePeers *int, workQueue chan *Piece, finished chan *Piece) {
+	defer decrementActivePeers(activePeers)
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
-	handleAllPendingMessages(peerConnection, pieces, 1)
+	handleAllPendingMessages(peerConnection, pieces, 5)
 
-	for piece := range workQueue {
-		if !peerConnection.bitfield[piece.index] || peerConnection.choked {
-			workQueue <- piece
-			if peerConnection.choked {
-				active := handleAllPendingMessages(peerConnection, pieces, 1)
-				if !active {
-					println("Closing conn", peerConnection.peer.ip)
-					peerConnection.conn.Close()
-					rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
-					if !rebuilt {
-						return
+	for {
+		for piece := range workQueue {
+			if !peerConnection.bitfield[piece.index] || peerConnection.choked {
+				workQueue <- piece
+				if peerConnection.choked {
+					active := handleAllPendingMessages(peerConnection, pieces, 2)
+					if !active {
+						println("Closing conn", peerConnection.peer.ip)
+						peerConnection.conn.Close()
+						rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+						if !rebuilt {
+							return
+						}
 					}
 				}
+				continue
 			}
-			continue
-		}
-		println("Requesting piece: " + strconv.Itoa(piece.index))
-		valid, active := requestPiece(peerConnection, pieces, uint32(piece.index))
-		if valid {
-			finished <- piece
-			println("recieved piece: ", piece.index, " ", len(finished))
-			sendHave(peerConnection, uint32(piece.index))
-		} else {
-			workQueue <- piece
-		}
-		if !active {
-			println("Closing conn", peerConnection.peer.ip)
-			peerConnection.conn.Close()
-			rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
-			if !rebuilt {
-				return
+			// request multiple peers for last two pieces
+			if len(workQueue) < 2 {
+				workQueue <- piece
+			}
+			println("Requesting piece: " + strconv.Itoa(piece.index))
+			valid := requestPiece(peerConnection, pieces, uint32(piece.index))
+			if valid {
+				finished <- piece
+				println("recieved piece: ", piece.index, " ", len(finished))
+				sendHave(peerConnection, uint32(piece.index))
+			} else {
+				workQueue <- piece
+				println("Closing conn", peerConnection.peer.ip)
+				peerConnection.conn.Close()
+				rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+				if !rebuilt {
+					return
+				}
 			}
 		}
+		time.Sleep(2 * time.Second)
 	}
-	return
 }
