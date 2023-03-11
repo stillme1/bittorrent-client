@@ -1,6 +1,7 @@
 # bittorrent-client
 
 The project is very limited in scope for now, although I am still working on it.
+A well seeded torrent can be downloaded as fast as any standard bittorrent client.
 
 Current status:
 - Only download supported (leeching)
@@ -8,17 +9,17 @@ Current status:
 - No NAT traversal
 - Can't be used with magnet link, and also no support for DHT.
 - Tries to reestablish dropped connection with peers, but currently it does't look for new peers.
+- Stores the entire file in memory, until download is finished. Hence no COD.
 
 
 Currently working on:
-- Requesting multiple pieces from the same peer concurrently to allow faster download.
-- Keep looking for new peers, after some intervals.
-- Adding support for WS and HTTP trackers.
-- Adding a dynamic timeout for peers, based on the size of a piece and health of the network.
+- Writing pieces to disc as soon as it is recieved to optimise memory usage.
+- Capping download speed.
+- Resend Announce after some fixed interval, and spin new goroutines for any new peer.
+- Adding support for HTTP trackers.
 
 
 Still exploring:
-- Controlling max download speed
 - Upload
 - NAT traversal
 - DHT
