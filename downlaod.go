@@ -51,13 +51,20 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte, peerC
 	return true
 }
 
-func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t uint32) bool {
-	curr := true
-	var err error
-	for curr {
-		curr, err = handlePeerConnection(peerConnection, piece, t)
+func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t int) bool {
+	for {
+		msgLength, msgId, err := messageType(peerConnection, t)
+		if(msgId == -2) {
+			return true
+		}
+		if err != nil {
+			return false
+		}
+		err = handleMessage(peerConnection, msgId, msgLength, piece)
+		if err != nil{
+			return false
+		}
 	}
-	return err == nil
 }
 
 func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
@@ -68,14 +75,14 @@ func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
 			return false
 		}
 		if msgId == 7 {
-			active, err := handleMessage(peerConnection, msgId, msgLength, piece)
-			if err != nil || !active {
+			err := handleMessage(peerConnection, msgId, msgLength, piece)
+			if err != nil {
 				return false
 			}
 			block--
 		} else {
-			active, err := handleMessage(peerConnection, msgId, msgLength, piece)
-			if err != nil || !active {
+			err := handleMessage(peerConnection, msgId, msgLength, piece)
+			if err != nil {
 				return false
 			}
 		}
@@ -113,12 +120,13 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 				if peerConnection.choked {
 					active := handleAllPendingMessages(peerConnection, pieces, 2)
 					if !active {
-						println("Closing conn", peerConnection.peer.ip)
 						peerConnection.conn.Close()
+						println("Connection closed: ", peerConnection.peer.ip)
 						rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
 						if !rebuilt {
 							return
 						}
+						println("Connection rebuilt: ", peerConnection.peer.ip)
 					}
 				}
 				continue
@@ -135,12 +143,13 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 				sendHave(peerConnection, uint32(piece.index))
 			} else {
 				workQueue <- piece
-				println("Closing conn", peerConnection.peer.ip)
 				peerConnection.conn.Close()
+				println("Connection closed:", peerConnection.peer.ip)
 				rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
 				if !rebuilt {
 					return
 				}
+				println("Rebuilt conn", peerConnection.peer.ip)
 			}
 		}
 		time.Sleep(2 * time.Second)
