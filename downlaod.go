@@ -121,7 +121,7 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 
 	for {
 		for piece := range workQueue {
-			if !(*peerConnection.bitfield)[piece.index] || peerConnection.choked {
+			if !*peerConnection.bitfield[piece.index] || peerConnection.choked {
 				workQueue <- piece
 				if peerConnection.choked {
 					active := handleAllPendingMessages(peerConnection, pieces, 2)
