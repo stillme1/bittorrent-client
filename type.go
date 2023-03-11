@@ -10,7 +10,7 @@ type PeerConnection struct {
 	peerId     []byte
 	choked     bool
 	interested bool
-	bitfield   *[]bool
+	bitfield   []*bool
 }
 
 type Piece struct {

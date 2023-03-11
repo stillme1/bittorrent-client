@@ -48,7 +48,7 @@ func handleHave(peerConnection *PeerConnection, length int32) error {
 		return err
 	}
 	index := int32(binary.BigEndian.Uint32(buff))
-	(*peerConnection.bitfield)[index] = true
+	*peerConnection.bitfield[index] = true
 
 	return nil
 }
@@ -64,8 +64,8 @@ func handleBitfield(peerConnection *PeerConnection, length int32) error {
 	}
 	for i, j := range buff {
 		for bit := 0; bit < 8; bit++ {
-			if (j&(1<<bit) != 0) && ((i+1)*8-bit-1 < len(*peerConnection.bitfield)) {
-				(*peerConnection.bitfield)[(i+1)*8-bit-1] = true
+			if (j&(1<<bit) != 0) && ((i+1)*8-bit-1 < len(peerConnection.bitfield)) {
+				*peerConnection.bitfield[(i+1)*8-bit-1] = true
 			}
 		}
 	}

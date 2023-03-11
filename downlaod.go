@@ -46,8 +46,12 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces []*Piece, wor
 	if err != nil {
 		return false
 	}
-	bitfield := make([]bool, len(pieces))
-	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
+	bitfield := make([]*bool, len(pieces))
+	for i := range bitfield {
+		bitfield[i] = new(bool)
+		*bitfield[i] = false
+	}
+	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, bitfield}
 	go startDownload(&peerConnection, torrent, pieces, workQueue, finished)
 	activePeers++
 	return true
