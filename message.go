@@ -18,12 +18,12 @@ func buildHandshake(infoHash string, peerId []byte) []byte {
 	copy(req[20:], []byte{0, 0, 0, 0, 0, 0, 0, 0})
 
 	// info_hash
-	info_hash,_ := hex.DecodeString(infoHash)
+	info_hash, _ := hex.DecodeString(infoHash)
 	copy(req[28:], info_hash)
 
 	// peer_id
 	copy(req[48:], peerId)
-	
+
 	return req
 }
 
@@ -148,7 +148,7 @@ func sendRequest(peerConn *PeerConnection, index uint32, offset uint32, length u
 	lengthBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthBytes, length)
 	copy(req[13:], lengthBytes)
-	
+
 	_, err := peerConn.conn.Write(req)
 	return err
 }
@@ -176,7 +176,7 @@ func sendPiece(peerConn *PeerConnection, index uint32, offset uint32, block []by
 
 	// block
 	copy(req[13:], block)
-	
+
 	_, err := peerConn.conn.Write(req)
 	return err
 }

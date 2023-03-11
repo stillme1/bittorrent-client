@@ -54,14 +54,14 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte, peerC
 func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t int) bool {
 	for {
 		msgLength, msgId, err := messageType(peerConnection, t)
-		if(msgId == -2) {
+		if msgId == -2 {
 			return true
 		}
 		if err != nil {
 			return false
 		}
 		err = handleMessage(peerConnection, msgId, msgLength, piece)
-		if err != nil{
+		if err != nil {
 			return false
 		}
 	}
@@ -69,9 +69,9 @@ func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t 
 
 func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
 	block := (piece[k].length + 0x00004000 - 1) / 0x00004000
-	for block > 0{
+	for block > 0 {
 		msgLength, msgId, err := messageType(peerConnection, 1200)
-		if err != nil || msgLength == -1{
+		if err != nil || msgLength == -1 {
 			return false
 		}
 		if msgId == 7 {
@@ -90,7 +90,7 @@ func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
 	return validatePiece(piece[k])
 }
 
-func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) (bool) {
+func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
 	for i := 0; i < piece[k].length; i += 0x00004000 {
 		blockSize := min(0x00004000, uint32(piece[k].length-i))
 		sendRequest(peerConnection, uint32(piece[k].index), uint32(i), blockSize)

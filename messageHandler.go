@@ -8,7 +8,7 @@ import (
 )
 
 func messageType(peerConnection *PeerConnection, t int) (int32, int32, error) {
-	
+
 	peerConnection.conn.SetDeadline(time.Now().Add(time.Duration(t) * time.Second))
 	defer peerConnection.conn.SetDeadline(time.Time{})
 

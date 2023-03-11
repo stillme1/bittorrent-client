@@ -5,25 +5,25 @@ import (
 )
 
 type PeerConnection struct {
-	conn net.Conn
-	peer Peer
-	peerId []byte
-	choked bool
+	conn       net.Conn
+	peer       Peer
+	peerId     []byte
+	choked     bool
 	interested bool
-	bitfield []bool
+	bitfield   []bool
 }
 
 type Piece struct {
-	index int
+	index  int
 	length int
-	hash [20]byte
-	done bool
-	data []byte
+	hash   [20]byte
+	done   bool
+	data   []byte
 }
 
 type file struct {
-	Length	int			`bencode:"length"`
-	Path	[]string	`bencode:"path"`
+	Length int      `bencode:"length"`
+	Path   []string `bencode:"path"`
 }
 
 type bencodeInfo struct {

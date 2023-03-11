@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"crypto/rand"
+	"fmt"
 	"os"
 	"time"
 
@@ -47,7 +47,7 @@ func main() {
 		for j := 0; j < 20; j++ {
 			temp.hash[j] = piecesString[i+j]
 		}
-		if(i+20 == len(piecesString)){
+		if i+20 == len(piecesString) {
 			temp.length = lastpieceLength
 		} else {
 			temp.length = info.Info.PieceLength
@@ -58,20 +58,20 @@ func main() {
 	}
 
 	// partsing the torrent file using go-torrent-parser
-	torrent,err := gotorrentparser.ParseFromFile(arg[0])
+	torrent, err := gotorrentparser.ParseFromFile(arg[0])
 	if err != nil {
 		panic(err)
 	}
 
 	// getting the peers from the UDP trackers
 	peers := getPeer(torrent, PEER_ID)
-	var peerConnection []PeerConnection		// live connection for each active peer
+	var peerConnection []PeerConnection // live connection for each active peer
 
 	// handshaking with each peer
 	for _, i := range peers {
-		go handShake(torrent, i, PEER_ID , &peerConnection);
+		go handShake(torrent, i, PEER_ID, &peerConnection)
 	}
-	time.Sleep(12*time.Second)
+	time.Sleep(12 * time.Second)
 
 	// getting the bitfield of each peer
 	for i := range peerConnection {
@@ -86,17 +86,16 @@ func main() {
 	}
 	activePeers := len(peerConnection)
 	for i := range peerConnection {
-		go startDownload(&peerConnection[i], torrent, pieces,&activePeers, workQueue, finishedQueue)
+		go startDownload(&peerConnection[i], torrent, pieces, &activePeers, workQueue, finishedQueue)
 	}
-
 
 	for len(finishedQueue) != len(pieces) {
-		fmt.Println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
+		fmt.Println("download = ", float64(len(finishedQueue))/float64(len(pieces))*100, "%")
 		fmt.Println("active peers = ", activePeers)
-		time.Sleep(10*time.Second)
+		time.Sleep(10 * time.Second)
 	}
 
-	if(len(info.Info.Files) == 0) {
+	if len(info.Info.Files) == 0 {
 		singleFileWrite(info, pieces, arg[1])
 	} else {
 		multiFileWrite(info, pieces, arg[1])

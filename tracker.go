@@ -33,7 +33,7 @@ func buildAnnounceRequest(connectionId uint64, torrent *gotorrentparser.Torrent,
 	copy(res[12:], transactionId)
 
 	// info_hash
-	infoHash,_ := hex.DecodeString(torrent.InfoHash)
+	infoHash, _ := hex.DecodeString(torrent.InfoHash)
 	copy(res[16:], infoHash)
 
 	// peer_id
@@ -175,7 +175,7 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 		connection.Write(req)
 		received := make([]byte, 1024)
 		n, err := connection.Read(received)
-		println("Announce response size = ",n)
+		println("Announce response size = ", n)
 		if err != nil {
 			println("Announce Read data failed:", err.Error())
 		} else {
