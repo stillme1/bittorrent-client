@@ -37,7 +37,7 @@ func main() {
 
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
 	piecesString := info.Info.Pieces
-	pieces := make([]*Piece, len(piecesString)/20)
+	pieces := make([]Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
 		var temp Piece
 		temp.index = i / 20
@@ -50,8 +50,7 @@ func main() {
 			temp.length = info.Info.PieceLength
 		}
 		temp.data = make([]byte, temp.length)
-		pieces[i/20] = &temp
-
+		pieces[i/20] = temp
 	}
 
 	// partsing the torrent file using go-torrent-parser
@@ -67,12 +66,12 @@ func main() {
 	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
-		workQueue <- pieces[i]
+		workQueue <- &pieces[i]
 	}
 
 	// handshaking with each peer
 	for _, i := range peers {
-		go handShake(torrent, i, pieces, workQueue, finishedQueue)
+		go handShake(torrent, i, &pieces, workQueue, finishedQueue)
 	}
 
 	for len(finishedQueue) != len(pieces) {
@@ -82,8 +81,8 @@ func main() {
 	}
 
 	if len(info.Info.Files) == 0 {
-		singleFileWrite(info, pieces, arg[1])
+		singleFileWrite(info, &pieces, arg[1])
 	} else {
-		multiFileWrite(info, pieces, arg[1])
+		multiFileWrite(info, &pieces, arg[1])
 	}
 }

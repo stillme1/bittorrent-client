@@ -48,7 +48,7 @@ func handleHave(peerConnection *PeerConnection, length int32) error {
 		return err
 	}
 	index := int32(binary.BigEndian.Uint32(buff))
-	*peerConnection.bitfield[index] = true
+	(*peerConnection.bitfield)[index] = true
 
 	return nil
 }
@@ -64,8 +64,8 @@ func handleBitfield(peerConnection *PeerConnection, length int32) error {
 	}
 	for i, j := range buff {
 		for bit := 0; bit < 8; bit++ {
-			if (j&(1<<bit) != 0) && ((i+1)*8-bit-1 < len(peerConnection.bitfield)) {
-				*peerConnection.bitfield[(i+1)*8-bit-1] = true
+			if (j&(1<<bit) != 0) && ((i+1)*8-bit-1 < len(*peerConnection.bitfield)) {
+				(*peerConnection.bitfield)[(i+1)*8-bit-1] = true
 			}
 		}
 	}
@@ -81,7 +81,7 @@ func handlePort(peerConnection *PeerConnection) {
 func handleRequest(peerConnection *PeerConnection) {
 	// TODO
 }
-func handlePiece(peerConnection *PeerConnection, length int, piece []*Piece) error {
+func handlePiece(peerConnection *PeerConnection, length int, piece *[]Piece) error {
 	peerConnection.conn.SetDeadline(time.Now().Add(50 * time.Second))
 	defer peerConnection.conn.SetDeadline(time.Time{})
 
@@ -92,11 +92,11 @@ func handlePiece(peerConnection *PeerConnection, length int, piece []*Piece) err
 	}
 	ind := int32(binary.BigEndian.Uint32(buff[0:4]))
 	offset := int32(binary.BigEndian.Uint32(buff[4:8]))
-	copy(piece[ind].data[offset:], buff[8:])
+	copy((*piece)[ind].data[offset:], buff[8:])
 	return nil
 }
 
-func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32, piece []*Piece) error {
+func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32, piece *[]Piece) error {
 	switch msgId {
 	case -1:
 		// keep alive

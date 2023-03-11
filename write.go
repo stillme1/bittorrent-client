@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-func singleFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
+func singleFileWrite(info bencodeTorrent, pieces *[]Piece, path string) {
 
 	path += "/" + info.Info.Name
 	err := os.MkdirAll(filepath.Dir(path), 0777)
@@ -19,17 +19,17 @@ func singleFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
 	defer file.Close()
 
 	offset := int64(0)
-	for i := range pieces {
+	for i := range *pieces {
 		file.Seek(offset, 0)
-		_, err := file.Write(pieces[i].data)
+		_, err := file.Write((*pieces)[i].data)
 		if err != nil {
 			panic("Error writing file, " + err.Error())
 		}
-		offset += int64(pieces[i].length)
+		offset += int64((*pieces)[i].length)
 	}
 }
 
-func multiFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
+func multiFileWrite(info bencodeTorrent, pieces *[]Piece, path string) {
 
 	currPiece := 0
 	offset := int64(0)
@@ -54,7 +54,7 @@ func multiFileWrite(info bencodeTorrent, pieces []*Piece, path string) {
 			if k > int64(i.Length) {
 				k = int64(i.Length)
 			}
-			file.Write(pieces[currPiece].data[offset : offset+k])
+			file.Write((*pieces)[currPiece].data[offset : offset+k])
 			i.Length -= int(k)
 			offset += k
 			if offset == int64(piecelength) {
