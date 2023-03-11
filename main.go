@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"crypto/rand"
 	"os"
 	"time"
@@ -79,22 +79,22 @@ func main() {
 	}
 
 	workQueue := make(chan *Piece, len(pieces))
-	// finishedQueue := make(chan *Piece, len(pieces))
+	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
 		workQueue <- pieces[i]
 	}
-	// activePeers := len(peerConnection)
-	// for i := range peerConnection {
-	// 	go startDownload(&peerConnection[i], torrent, pieces,&activePeers, workQueue, finishedQueue)
-	// }
+	activePeers := len(peerConnection)
+	for i := range peerConnection {
+		go startDownload(&peerConnection[i], torrent, pieces,&activePeers, workQueue, finishedQueue)
+	}
 
 
-	// for len(finishedQueue) != len(pieces) {
-	// 	fmt.Println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
-	// 	fmt.Println("active peers = ", activePeers)
-	// 	time.Sleep(10*time.Second)
-	// }
+	for len(finishedQueue) != len(pieces) {
+		fmt.Println("download = ", float64(len(finishedQueue)) / float64(len(pieces)) * 100, "%")
+		fmt.Println("active peers = ", activePeers)
+		time.Sleep(10*time.Second)
+	}
 
 	if(len(info.Info.Files) == 0) {
 		singleFileWrite(info, pieces, arg[1])

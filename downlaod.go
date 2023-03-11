@@ -63,7 +63,7 @@ func handleAllPendingMessages(peerConnection *PeerConnection, piece []*Piece, t 
 func getPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) bool {
 	block := (piece[k].length + 0x00004000 - 1) / 0x00004000
 	for block > 0{
-		msgLength, msgId, err := messageType(peerConnection, 500)
+		msgLength, msgId, err := messageType(peerConnection, 1200)
 		if err != nil || msgLength == -1{
 			return false
 		}
@@ -88,8 +88,8 @@ func requestPiece(peerConnection *PeerConnection, piece []*Piece, k uint32) (boo
 		blockSize := min(0x00004000, uint32(piece[k].length-i))
 		sendRequest(peerConnection, uint32(piece[k].index), uint32(i), blockSize)
 	}
-	active := getPiece(peerConnection, piece, k)
-	return active
+	valid := getPiece(peerConnection, piece, k)
+	return valid
 }
 
 func validatePiece(piece *Piece) bool {
