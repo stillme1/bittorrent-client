@@ -19,6 +19,7 @@ func messageType(peerConnection *PeerConnection, t int) (int32, int32, error) {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return 0, -2, nil
 		}
+		println(err.Error())
 		return -1, -1, err
 	}
 

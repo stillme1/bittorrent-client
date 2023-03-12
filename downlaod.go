@@ -73,7 +73,7 @@ func getPiece(peerConnection *PeerConnection, piece *[]Piece, k uint32) bool {
 	block := ((*piece)[k].length + 0x00004000 - 1) / 0x00004000
 	for block > 0 {
 		msgLength, msgId, err := messageType(peerConnection, 1200)
-		if err != nil || msgLength == -1 {
+		if err != nil {
 			return false
 		}
 		if msgId == 7 {
@@ -97,8 +97,7 @@ func requestPiece(peerConnection *PeerConnection, piece *[]Piece, k uint32) bool
 		blockSize := min(0x00004000, uint32((*piece)[k].length-i))
 		sendRequest(peerConnection, uint32((*piece)[k].index), uint32(i), blockSize)
 	}
-	valid := getPiece(peerConnection, piece, k)
-	return valid
+	return getPiece(peerConnection, piece, k)
 }
 
 func validatePiece(piece *Piece) bool {
