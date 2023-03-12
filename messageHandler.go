@@ -98,6 +98,8 @@ func handlePiece(peerConnection *PeerConnection, length int, piece *[]Piece) err
 
 func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32, piece *[]Piece) error {
 	switch msgId {
+	case -2:
+		// timeout
 	case -1:
 		// keep alive
 		return nil
