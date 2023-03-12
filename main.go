@@ -13,7 +13,6 @@ import (
 func main() {
 	// Generating a random peer id
 	rand.Read(PEER_ID)
-	pieceDone = make(map[int]bool)
 
 	// getting the path to torrent file as an argument
 	arg := os.Args[1:]
@@ -54,7 +53,7 @@ func main() {
 		pieces[i/20] = temp
 	}
 
-	// partsing the torrent file using go-torrent-parser
+	// parsing the torrent file using go-torrent-parser
 	torrent, err := gotorrentparser.ParseFromFile(arg[0])
 	if err != nil {
 		panic(err)
@@ -68,7 +67,6 @@ func main() {
 
 	// Starting download
 	go startDownload(torrent, &pieces, workQueue)
-
 	for len(pieceDone) != len(pieces) {
 		fmt.Println("download = ", float64(len(pieceDone))/float64(len(pieces))*100, "%")
 		fmt.Println("active peers = ", len(listOfPeers))

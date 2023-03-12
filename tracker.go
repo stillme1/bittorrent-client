@@ -159,7 +159,7 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 	if resp.action == 0 {
 		req := buildAnnounceRequest(resp.connectionId, torrent, 6881)
 		connection.Write(req)
-		received := make([]byte, 1024)
+		received := make([]byte, 1048576)
 		n, err := connection.Read(received)
 		println("Announce response size = ", n)
 		if err != nil {
