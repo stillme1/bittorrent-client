@@ -134,11 +134,16 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 				continue
 			}
 			// request multiple peers for last two pieces
-			if len(workQueue) < 2 {
+			if len(workQueue) == 0 {
 				workQueue <- piece
+				for i := 0; i < len(*pieces); i++ {
+					if !pieceDone[i] {
+						workQueue <- &(*pieces)[i]
+					}
+				}
 			}
 			if pieceDone[piece.index] {
-				time.Sleep(2 * time.Second)
+				<-workQueue
 				continue
 			}
 			println("Requesting piece: " + strconv.Itoa(piece.index))
