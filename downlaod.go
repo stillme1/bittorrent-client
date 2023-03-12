@@ -122,7 +122,7 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 					active := handleAllPendingMessages(peerConnection, pieces, 2)
 					if !active {
 						peerConnection.conn.Close()
-						println("Connection closed first: ", peerConnection.peer.ip)
+						println("Connection closed: ", peerConnection.peer.ip)
 						rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
 						if !rebuilt {
 							return
@@ -156,7 +156,7 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 			} else {
 				workQueue <- piece
 				peerConnection.conn.Close()
-				println("Connection closed second:", peerConnection.peer.ip)
+				println("Connection closed:", peerConnection.peer.ip)
 				rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
 				if !rebuilt {
 					return
