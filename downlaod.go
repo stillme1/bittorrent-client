@@ -30,7 +30,7 @@ func rebuildHandShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte
 	return true
 }
 
-func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, workQueue, finished chan *Piece) bool {
+func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, workQueue chan *Piece) bool {
 	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
 	if err != nil {
 		return false
@@ -48,7 +48,7 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, wor
 	}
 	bitfield := make([]bool, len(*pieces))
 	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
-	go startDownload(&peerConnection, torrent, pieces, workQueue, finished)
+	go startDownload(&peerConnection, torrent, pieces, workQueue)
 	activePeers++
 	return true
 }
@@ -109,7 +109,7 @@ func validatePiece(piece *Piece) bool {
 	return res
 }
 
-func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue, finished chan *Piece) {
+func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue chan *Piece) {
 	defer decrementActivePeers()
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
@@ -140,8 +140,10 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 			println("Requesting piece: " + strconv.Itoa(piece.index))
 			valid := requestPiece(peerConnection, pieces, uint32(piece.index))
 			if valid {
-				finished <- piece
-				println("recieved piece: ", piece.index, " ", len(finished))
+				mutex.Lock()
+				pieceDone[piece.index] = true
+				mutex.Unlock()
+				println("recieved piece: ", piece.index, " ", len(pieceDone))
 				sendHave(peerConnection, uint32(piece.index))
 			} else {
 				workQueue <- piece

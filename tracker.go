@@ -12,8 +12,6 @@ import (
 	gotorrentparser "github.com/j-muller/go-torrent-parser"
 )
 
-var peer_id []byte
-
 func buildAnnounceRequest(connectionId uint64, torrent *gotorrentparser.Torrent, p uint16) []byte {
 	res := make([]byte, 98)
 
@@ -37,7 +35,7 @@ func buildAnnounceRequest(connectionId uint64, torrent *gotorrentparser.Torrent,
 	copy(res[16:], infoHash)
 
 	// peer_id
-	copy(res[36:], peer_id)
+	copy(res[36:], PEER_ID)
 
 	// downloaded
 
@@ -204,9 +202,8 @@ func getUniquePeers(peers *[]Peer) {
 }
 
 func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
-	peer_id = peerId
+	
 	buff := buildConnReq()
-
 	urls := torrent.Announce
 
 	var peers []Peer

@@ -13,6 +13,7 @@ import (
 func main() {
 	// Generating a random peer id
 	rand.Read(PEER_ID)
+	pieceDone = make(map[int]bool)
 
 	// getting the path to torrent file as an argument
 	arg := os.Args[1:]
@@ -63,7 +64,6 @@ func main() {
 	peers := getPeer(torrent, PEER_ID)
 
 	workQueue := make(chan *Piece, len(pieces))
-	finishedQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
 		workQueue <- &pieces[i]
@@ -71,11 +71,11 @@ func main() {
 
 	// handshaking with each peer
 	for _, i := range peers {
-		go handShake(torrent, i, &pieces, workQueue, finishedQueue)
+		go handShake(torrent, i, &pieces, workQueue)
 	}
 
-	for len(finishedQueue) != len(pieces) {
-		fmt.Println("download = ", float64(len(finishedQueue))/float64(len(pieces))*100, "%")
+	for len(pieceDone) != len(pieces) {
+		fmt.Println("download = ", float64(len(pieceDone))/float64(len(pieces))*100, "%")
 		fmt.Println("active peers = ", activePeers)
 		time.Sleep(10 * time.Second)
 	}
