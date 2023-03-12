@@ -71,7 +71,7 @@ func main() {
 
 	for len(pieceDone) != len(pieces) {
 		fmt.Println("download = ", float64(len(pieceDone))/float64(len(pieces))*100, "%")
-		fmt.Println("active peers = ", activePeers)
+		fmt.Println("active peers = ", len(listOfPeers))
 		time.Sleep(10 * time.Second)
 	}
 

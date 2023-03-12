@@ -49,7 +49,6 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, wor
 	bitfield := make([]bool, len(*pieces))
 	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
 	go download(&peerConnection, torrent, pieces, workQueue)
-	activePeers++
 	return true
 }
 
@@ -109,8 +108,7 @@ func validatePiece(piece *Piece) bool {
 }
 
 func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue chan *Piece) {
-
-	defer decrementActivePeers()
+	
 	defer removePeer(peerConnection.peer.ip)
 
 	sendUnchoke(peerConnection)

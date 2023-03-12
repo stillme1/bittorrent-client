@@ -9,7 +9,6 @@ import (
 // constants
 var piecelength = 0
 var PEER_ID = make([]byte, 20)
-var activePeers = 0
 var pieceDone = make(map[int]bool)
 var listOfPeers = make(map[string]bool)
 var mutex = &sync.Mutex{}
@@ -19,12 +18,6 @@ func min(a, b uint32) uint32 {
 		return a
 	}
 	return b
-}
-
-func decrementActivePeers() {
-	mutex.Lock()
-	activePeers--
-	mutex.Unlock()
 }
 
 func removePeer(peer string) {

@@ -8,14 +8,12 @@ Current status:
 - Supports only UDP tracker
 - No NAT traversal
 - Can't be used with magnet link, and also no support for DHT.
-- Tries to reestablish dropped connection with peers, but currently it does't look for new peers.
-- Stores the entire file in memory, until download is finished. Hence no COD.
+- Stores the entire file in memory, until download is finished.
 
 
 Currently working on:
 - Writing pieces to disc as soon as it is recieved to optimise memory usage.
 - Capping download speed.
-- Resend Announce after some fixed interval, and spin new goroutines for any new peer.
 - Adding support for HTTP trackers.
 
 
