@@ -30,10 +30,11 @@ func rebuildHandShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte
 	return true
 }
 
-func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, workQueue chan *Piece) bool {
+func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, workQueue chan *Piece) {
 	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
 	if err != nil {
-		return false
+		removePeer(peer)
+		return
 	}
 
 	conn.Write(buildHandshake(torrent.InfoHash, PEER_ID))
@@ -44,12 +45,12 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, wor
 	_, err = io.ReadFull(conn, resp)
 
 	if err != nil {
-		return false
+		removePeer(peer)
+		return
 	}
 	bitfield := make([]bool, len(*pieces))
 	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
 	go download(&peerConnection, torrent, pieces, workQueue)
-	return true
 }
 
 func handleAllPendingMessages(peerConnection *PeerConnection, piece *[]Piece, t int) bool {
@@ -108,8 +109,7 @@ func validatePiece(piece *Piece) bool {
 }
 
 func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue chan *Piece) {
-	
-	defer removePeer(peerConnection.peer.ip)
+	defer removePeer(peerConnection.peer)
 
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 
 	gotorrentparser "github.com/j-muller/go-torrent-parser"
@@ -20,9 +21,9 @@ func min(a, b uint32) uint32 {
 	return b
 }
 
-func removePeer(peer string) {
+func removePeer(peer Peer) {
 	mutex.Lock()
-	delete(listOfPeers, peer)
+	delete(listOfPeers, peer.ip + fmt.Sprintf("%v", peer.port))
 	mutex.Unlock()
 }
 
