@@ -17,7 +17,6 @@ type Piece struct {
 	index  int
 	length int
 	hash   [20]byte
-	done   bool
 	data   []byte
 }
 

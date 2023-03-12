@@ -137,6 +137,10 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 			if len(workQueue) < 2 {
 				workQueue <- piece
 			}
+			if pieceDone[piece.index] {
+				time.Sleep(2 * time.Second)
+				continue
+			}
 			println("Requesting piece: " + strconv.Itoa(piece.index))
 			valid := requestPiece(peerConnection, pieces, uint32(piece.index))
 			if valid {
@@ -153,9 +157,9 @@ func startDownload(peerConnection *PeerConnection, torrent *gotorrentparser.Torr
 				if !rebuilt {
 					return
 				}
-				println("Rebuilt conn", peerConnection.peer.ip)
+				println("Rebuilt connection", peerConnection.peer.ip)
 			}
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
