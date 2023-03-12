@@ -1,5 +1,12 @@
 # bittorrent-client
 
+- git clone https://github.com/stillme1/bittorrent-client
+- go get .
+- go run . "path to torrent" "path to download destination"     
+Use different files for stdout and stderr for better logging    
+Eg.   
+go run . torrent/0.torrent download > output.txt 2> error.txt
+
 The project is very limited in scope for now, although I am still working on it.
 A well seeded torrent can be downloaded as fast as any standard bittorrent client.
 
@@ -8,16 +15,10 @@ Current status:
 - Supports only UDP tracker
 - No NAT traversal
 - Can't be used with magnet link, and also no support for DHT.
-- Stores the entire file in memory, until download is finished.
 
 
 Currently working on:
-- Writing pieces to disc as soon as it is recieved to optimise memory usage.
 - Capping download speed.
-- Adding support for HTTP trackers.
-
-
-Still exploring:
 - Upload
 - NAT traversal
 - DHT
