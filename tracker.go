@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/url"
@@ -81,12 +82,8 @@ func buildConnReq() []byte {
 	binary.BigEndian.PutUint32(transactionId, tId)
 
 	buff := connectionId
-	for i := range action {
-		buff = append(buff, action[i])
-	}
-	for i := range transactionId {
-		buff = append(buff, transactionId[i])
-	}
+	buff = append(buff, action...)
+	buff = append(buff, transactionId...)
 
 	return buff
 }
@@ -124,15 +121,6 @@ func parseAccounceResponse(resp []byte, n int) annResp {
 		}
 	}
 	return res
-}
-
-func getSize(torrent *gotorrentparser.Torrent) int64 {
-	files := torrent.Files
-	var size int64
-	for _, val := range files {
-		size += val.Length
-	}
-	return size
 }
 
 func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peers *[]Peer) {
@@ -186,23 +174,9 @@ func handleConnection(k int, buff []byte, torrent *gotorrentparser.Torrent, peer
 	}
 }
 
-func getUniquePeers(peers *[]Peer) {
-	check := map[Peer]int{}
 
-	var res []Peer
+func getPeers(torrent *gotorrentparser.Torrent) []Peer {
 
-	for _, i := range *peers {
-		check[i] = 1
-	}
-
-	for i, _ := range check {
-		res = append(res, i)
-	}
-	*peers = res
-}
-
-func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
-	
 	buff := buildConnReq()
 	urls := torrent.Announce
 
@@ -212,7 +186,13 @@ func getPeer(torrent *gotorrentparser.Torrent, peerId []byte) []Peer {
 			handleConnection(i, buff, torrent, &peers)
 		}
 	}
-	getUniquePeers(&peers)
-
-	return peers
+	newPeers := make([]Peer, 0)
+	for _,i:= range peers {
+		peer := i.ip+fmt.Sprintf("%v",i.port)
+		if !listOfPeers[peer] {
+			listOfPeers[peer] = true
+			newPeers = append(newPeers, i)
+		}
+	}
+	return newPeers
 }

@@ -60,19 +60,14 @@ func main() {
 		panic(err)
 	}
 
-	// getting the peers from the UDP trackers
-	peers := getPeer(torrent, PEER_ID)
-
 	workQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
 		workQueue <- &pieces[i]
 	}
 
-	// handshaking with each peer
-	for _, i := range peers {
-		go handShake(torrent, i, &pieces, workQueue)
-	}
+	// Starting download
+	go startDownload(torrent, &pieces, workQueue)
 
 	for len(pieceDone) != len(pieces) {
 		fmt.Println("download = ", float64(len(pieceDone))/float64(len(pieces))*100, "%")
