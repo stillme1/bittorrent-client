@@ -150,7 +150,6 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 			}
 			mutex.Lock()
 			if pieceDone[piece.index] {
-				<-workQueue
 				mutex.Unlock()
 				continue
 			}
