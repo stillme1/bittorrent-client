@@ -21,9 +21,10 @@ func main() {
 		panic(err)
 	}
 	defer file.Close()
+	path = arg[1]
 
 	// parsing the torrent file
-	info := bencodeTorrent{}
+	info = bencodeTorrent{}
 	err = bencode.Unmarshal(file, &info)
 	if err != nil {
 		panic(err)
@@ -37,7 +38,7 @@ func main() {
 
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
 	piecesString := info.Info.Pieces
-	pieces := make([]Piece, len(piecesString)/20)
+	pieces = make([]*Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
 		var temp Piece
 		temp.index = i / 20
@@ -49,8 +50,8 @@ func main() {
 		} else {
 			temp.length = info.Info.PieceLength
 		}
-		temp.data = make([]byte, temp.length)
-		pieces[i/20] = temp
+		temp.data = nil
+		pieces[i/20] = &temp
 	}
 
 	// parsing the torrent file using go-torrent-parser
@@ -62,20 +63,16 @@ func main() {
 	workQueue := make(chan *Piece, len(pieces))
 
 	for i := range pieces {
-		workQueue <- &pieces[i]
+		workQueue <- pieces[i]
 	}
 
 	// Starting download
-	go startDownload(torrent, &pieces, workQueue)
+	go startDownload(torrent, workQueue)
+
 	for len(pieceDone) != len(pieces) {
 		fmt.Println("download = ", float64(len(pieceDone))/float64(len(pieces))*100, "%")
 		fmt.Println("active peers = ", len(listOfPeers))
 		time.Sleep(10 * time.Second)
 	}
-
-	if len(info.Info.Files) == 0 {
-		singleFileWrite(info, &pieces, arg[1])
-	} else {
-		multiFileWrite(info, &pieces, arg[1])
-	}
+	time.Sleep(5 * time.Second)
 }

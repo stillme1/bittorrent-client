@@ -15,20 +15,20 @@ type PeerConnection struct {
 
 type Piece struct {
 	index  int
-	length int
+	length int64
 	hash   [20]byte
-	data   []byte
+	data   *[]byte
 }
 
 type file struct {
-	Length int      `bencode:"length"`
+	Length int64      `bencode:"length"`
 	Path   []string `bencode:"path"`
 }
 
 type bencodeInfo struct {
 	Pieces      string `bencode:"pieces"`
-	PieceLength int    `bencode:"piece length"`
-	Length      int    `bencode:"length"`
+	PieceLength int64    `bencode:"piece length"`
+	Length      int64    `bencode:"length"`
 	Files       []file `bencode:"files"`
 	Name        string `bencode:"name"`
 }

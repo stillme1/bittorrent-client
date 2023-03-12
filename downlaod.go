@@ -30,7 +30,7 @@ func rebuildHandShake(torrent *gotorrentparser.Torrent, peer Peer, peedId []byte
 	return true
 }
 
-func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, workQueue chan *Piece) {
+func handShake(torrent *gotorrentparser.Torrent, peer Peer, workQueue chan *Piece) {
 	conn, err := net.DialTimeout("tcp", peer.ip+":"+strconv.Itoa(int(peer.port)), 5*time.Second)
 	if err != nil {
 		removePeer(peer)
@@ -48,12 +48,12 @@ func handShake(torrent *gotorrentparser.Torrent, peer Peer, pieces *[]Piece, wor
 		removePeer(peer)
 		return
 	}
-	bitfield := make([]bool, len(*pieces))
+	bitfield := make([]bool, len(pieces))
 	peerConnection := PeerConnection{conn, peer, resp[48:], true, false, &bitfield}
-	go download(&peerConnection, torrent, pieces, workQueue)
+	go download(&peerConnection, torrent, workQueue)
 }
 
-func handleAllPendingMessages(peerConnection *PeerConnection, piece *[]Piece, t int) bool {
+func handleAllPendingMessages(peerConnection *PeerConnection, t int) bool {
 	for {
 		msgLength, msgId, err := messageType(peerConnection, t)
 		if msgId == -2 {
@@ -62,65 +62,70 @@ func handleAllPendingMessages(peerConnection *PeerConnection, piece *[]Piece, t 
 		if err != nil {
 			return false
 		}
-		err = handleMessage(peerConnection, msgId, msgLength, piece)
+		err = handleMessage(peerConnection, msgId, msgLength)
 		if err != nil {
 			return false
 		}
 	}
 }
 
-func getPiece(peerConnection *PeerConnection, piece *[]Piece, k uint32) bool {
-	block := ((*piece)[k].length + 0x00004000 - 1) / 0x00004000
+func getPiece(peerConnection *PeerConnection, k int) bool {
+	data := make([]byte, pieces[k].length)
+	pieces[k].data = &data
+	block := (pieces[k].length + 0x00004000 - 1) / 0x00004000
 	for block > 0 {
 		msgLength, msgId, err := messageType(peerConnection, 1200)
 		if err != nil {
 			return false
 		}
 		if msgId == 7 {
-			err := handleMessage(peerConnection, msgId, msgLength, piece)
+			err := handleMessage(peerConnection, msgId, msgLength)
 			if err != nil {
 				return false
 			}
 			block--
 		} else {
-			err := handleMessage(peerConnection, msgId, msgLength, piece)
+			err := handleMessage(peerConnection, msgId, msgLength)
 			if err != nil {
 				return false
 			}
 		}
 	}
-	return validatePiece(&(*piece)[k])
+	return validatePiece(k)
 }
 
-func requestPiece(peerConnection *PeerConnection, piece *[]Piece, k uint32) bool {
-	for i := 0; i < (*piece)[k].length; i += 0x00004000 {
-		blockSize := min(0x00004000, uint32((*piece)[k].length-i))
-		sendRequest(peerConnection, uint32((*piece)[k].index), uint32(i), blockSize)
+func requestPiece(peerConnection *PeerConnection, k int) bool {
+	for i := int64(0); i < pieces[k].length; i += 0x00004000 {
+		blockSize := min(0x00004000, uint32(pieces[k].length-i))
+		sendRequest(peerConnection, uint32(pieces[k].index), uint32(i), blockSize)
 	}
-	return getPiece(peerConnection, piece, k)
+	return getPiece(peerConnection, k)
 }
 
-func validatePiece(piece *Piece) bool {
-	res := sha1.Sum(piece.data) == piece.hash
+func validatePiece(k int) bool {
+	if(pieces[k].data == nil) {
+		return false
+	}
+	res := sha1.Sum(*pieces[k].data) == pieces[k].hash
 	if !res {
-		println("invalid piece", piece.index)
+		println("invalid piece", pieces[k].index)
 	}
 	return res
 }
 
-func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue chan *Piece) {
+func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, workQueue chan *Piece) {
 	defer removePeer(peerConnection.peer)
 
 	sendUnchoke(peerConnection)
 	sendInterested(peerConnection)
-	handleAllPendingMessages(peerConnection, pieces, 5)
+	handleAllPendingMessages(peerConnection, 5)
 
 	for {
 		for piece := range workQueue {
 			if !(*peerConnection.bitfield)[piece.index] || peerConnection.choked {
 				workQueue <- piece
 				if peerConnection.choked {
-					active := handleAllPendingMessages(peerConnection, pieces, 2)
+					active := handleAllPendingMessages(peerConnection, 2)
 					if !active {
 						peerConnection.conn.Close()
 						println("Connection closed: ", peerConnection.peer.ip)
@@ -135,11 +140,10 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 			}
 			// request multiple peers for last two pieces
 			if len(workQueue) == 0 {
-				workQueue <- piece
-				for i := 0; i < len(*pieces); i++ {
+				for i := 0; i < len(pieces); i++ {
 					mutex.Lock()
 					if !pieceDone[i] {
-						workQueue <- &(*pieces)[i]
+						workQueue <- pieces[i]
 					}
 					mutex.Unlock()
 				}
@@ -152,13 +156,15 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 			}
 			mutex.Unlock()
 			println("Requesting piece: " + strconv.Itoa(piece.index))
-			valid := requestPiece(peerConnection, pieces, uint32(piece.index))
+			valid := requestPiece(peerConnection, piece.index)
 			if valid {
 				mutex.Lock()
 				pieceDone[piece.index] = true
 				mutex.Unlock()
+				write(piece.index)
 				println("recieved piece: ", piece.index, " ", len(pieceDone))
 				sendHave(peerConnection, uint32(piece.index))
+				piece = nil
 			} else {
 				workQueue <- piece
 				peerConnection.conn.Close()
@@ -175,11 +181,11 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 }
 
 
-func startDownload(torrent *gotorrentparser.Torrent, pieces *[]Piece, workQueue chan *Piece) {
+func startDownload(torrent *gotorrentparser.Torrent, workQueue chan *Piece) {
 	for	{
 		peerList := getPeers(torrent)
 		for _, peer := range peerList {
-			go handShake(torrent, peer, pieces, workQueue)
+			go handShake(torrent, peer, workQueue)
 		}
 		time.Sleep(60 * time.Second)
 	}

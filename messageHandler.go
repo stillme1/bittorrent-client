@@ -82,7 +82,7 @@ func handlePort(peerConnection *PeerConnection) {
 func handleRequest(peerConnection *PeerConnection) {
 	// TODO
 }
-func handlePiece(peerConnection *PeerConnection, length int, piece *[]Piece) error {
+func handlePiece(peerConnection *PeerConnection, length int) error {
 	peerConnection.conn.SetDeadline(time.Now().Add(50 * time.Second))
 	defer peerConnection.conn.SetDeadline(time.Time{})
 
@@ -93,11 +93,14 @@ func handlePiece(peerConnection *PeerConnection, length int, piece *[]Piece) err
 	}
 	ind := int32(binary.BigEndian.Uint32(buff[0:4]))
 	offset := int32(binary.BigEndian.Uint32(buff[4:8]))
-	copy((*piece)[ind].data[offset:], buff[8:])
+	if(pieces[ind].data == nil) {
+		return nil
+	}
+	copy((*pieces[ind].data)[offset:], buff[8:])
 	return nil
 }
 
-func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32, piece *[]Piece) error {
+func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32) error {
 	switch msgId {
 	case -2:
 		// timeout
@@ -127,7 +130,7 @@ func handleMessage(peerConnection *PeerConnection, msgId, msgLength int32, piece
 		// TODO
 	case 7:
 		// piece
-		return handlePiece(peerConnection, int(msgLength-1), piece)
+		return handlePiece(peerConnection, int(msgLength-1))
 	case 8:
 		// cancel
 		// TODO

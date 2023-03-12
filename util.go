@@ -8,11 +8,14 @@ import (
 )
 
 // constants
-var piecelength = 0
+var piecelength = int64(0)
 var PEER_ID = make([]byte, 20)
 var pieceDone = make(map[int]bool)
 var listOfPeers = make(map[string]bool)
 var mutex = &sync.Mutex{}
+var pieces []*Piece
+var path string
+var info bencodeTorrent
 
 func min(a, b uint32) uint32 {
 	if a < b {
@@ -34,4 +37,10 @@ func getSize(torrent *gotorrentparser.Torrent) int64 {
 		size += val.Length
 	}
 	return size
+}
+
+func deletePiece(k int) {
+	mutex.Lock()
+	pieces[k].data = nil
+	mutex.Unlock()
 }
