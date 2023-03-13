@@ -138,22 +138,6 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 				}
 				continue
 			}
-			// request multiple peers for last two pieces
-			if len(workQueue) == 0 {
-				for i := 0; i < len(pieces); i++ {
-					mutex.Lock()
-					if !pieceDone[i] {
-						workQueue <- pieces[i]
-					}
-					mutex.Unlock()
-				}
-			}
-			mutex.Lock()
-			if pieceDone[piece.index] {
-				mutex.Unlock()
-				continue
-			}
-			mutex.Unlock()
 			println("Requesting piece: " + strconv.Itoa(piece.index))
 			valid := requestPiece(peerConnection, piece.index)
 			if valid {
