@@ -74,5 +74,4 @@ func main() {
 		fmt.Println("active peers = ", len(listOfPeers))
 		time.Sleep(10 * time.Second)
 	}
-	time.Sleep(5 * time.Second)
 }

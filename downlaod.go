@@ -120,46 +120,55 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 	sendInterested(peerConnection)
 	handleAllPendingMessages(peerConnection, 5)
 
-	for {
-		for piece := range workQueue {
-			if !(*peerConnection.bitfield)[piece.index] || peerConnection.choked {
-				workQueue <- piece
-				if peerConnection.choked {
-					active := handleAllPendingMessages(peerConnection, 2)
-					if !active {
-						peerConnection.conn.Close()
-						println("Connection closed: ", peerConnection.peer.ip)
-						rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
-						if !rebuilt {
-							return
-						}
-						println("Connection rebuilt: ", peerConnection.peer.ip)
+	for piece := range workQueue {
+		if !(*peerConnection.bitfield)[piece.index] || peerConnection.choked {
+			workQueue <- piece
+			if peerConnection.choked {
+				active := handleAllPendingMessages(peerConnection, 2)
+				if !active {
+					peerConnection.conn.Close()
+					println("Connection closed: ", peerConnection.peer.ip)
+					rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+					if !rebuilt {
+						return
 					}
+					println("Connection rebuilt: ", peerConnection.peer.ip)
 				}
-				continue
 			}
-			println("Requesting piece: " + strconv.Itoa(piece.index))
-			valid := requestPiece(peerConnection, piece.index)
-			if valid {
-				mutex.Lock()
-				pieceDone[piece.index] = true
-				mutex.Unlock()
-				write(piece.index)
-				println("recieved piece: ", piece.index, " ", len(pieceDone))
-				sendHave(peerConnection, uint32(piece.index))
-				piece = nil
-			} else {
-				workQueue <- piece
-				peerConnection.conn.Close()
-				println("Connection closed:", peerConnection.peer.ip)
-				rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
-				if !rebuilt {
-					return
-				}
-				println("Rebuilt connection", peerConnection.peer.ip)
-			}
+			continue
 		}
-		time.Sleep(1 * time.Second)
+		mutex.Lock()
+		if pieceDone[piece.index] {
+			mutex.Unlock()
+			continue;
+		}
+		mutex.Unlock()
+		if len(workQueue) == 0 {
+			mutex.Lock()
+			for i:= range pieces {
+				if !pieceDone[i] {
+					workQueue <- pieces[i]
+				}
+			}
+			mutex.Unlock()
+		}
+		println("Requesting piece: " + strconv.Itoa(piece.index))
+		valid := requestPiece(peerConnection, piece.index)
+		if valid {
+			write(piece.index)
+			println("recieved piece: ", piece.index, " ", len(pieceDone))
+			sendHave(peerConnection, uint32(piece.index))
+			piece = nil
+		} else {
+			workQueue <- piece
+			peerConnection.conn.Close()
+			println("Connection closed:", peerConnection.peer.ip)
+			rebuilt := rebuildHandShake(torrent, peerConnection.peer, peerConnection.peerId, peerConnection)
+			if !rebuilt {
+				return
+			}
+			println("Rebuilt connection", peerConnection.peer.ip)
+		}
 	}
 }
 
