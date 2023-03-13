@@ -96,7 +96,9 @@ func handlePiece(peerConnection *PeerConnection, length int) error {
 	if(pieces[ind].data == nil) {
 		return nil
 	}
+	mutex.Lock()
 	copy((*pieces[ind].data)[offset:], buff[8:])
+	mutex.Unlock()
 	return nil
 }
 

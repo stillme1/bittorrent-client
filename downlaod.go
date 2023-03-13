@@ -160,7 +160,7 @@ func download(peerConnection *PeerConnection, torrent *gotorrentparser.Torrent, 
 			write(piece.index)
 			println("recieved piece: ", piece.index, " ", len(pieceDone))
 			sendHave(peerConnection, uint32(piece.index))
-			piece = nil
+			piece.data = nil
 		} else {
 			workQueue <- piece
 			peerConnection.conn.Close()
