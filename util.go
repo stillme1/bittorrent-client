@@ -33,3 +33,9 @@ func deletePiece(k int) {
 	pieces[k].data = nil
 	mutex.Unlock()
 }
+
+func markPieceDone(k int) {
+	mutex.Lock()
+	pieceDone[k] = true
+	mutex.Unlock()
+}

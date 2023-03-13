@@ -51,9 +51,3 @@ func write(k int) {
 		i++
 	}
 }
-
-func markPieceDone(k int) {
-	mutex.Lock()
-	pieceDone[k] = true
-	mutex.Unlock()
-}
