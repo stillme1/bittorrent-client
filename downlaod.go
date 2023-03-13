@@ -70,8 +70,10 @@ func handleAllPendingMessages(peerConnection *PeerConnection, t int) bool {
 }
 
 func getPiece(peerConnection *PeerConnection, k int) bool {
-	data := make([]byte, pieces[k].length)
-	pieces[k].data = &data
+	if(pieces[k].data == nil) {
+		data := make([]byte, pieces[k].length)
+		pieces[k].data = &data
+	}
 	block := (pieces[k].length + 0x00004000 - 1) / 0x00004000
 	for block > 0 {
 		msgLength, msgId, err := messageType(peerConnection, 1200)
