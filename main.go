@@ -31,12 +31,15 @@ func main() {
 	}
 	piecelength = info.Info.PieceLength
 
-	// getting the hash of each piece as hexadecimal string
+	// getting the length of torrent
 	for i := range info.Info.Files {
 		info.Info.Length += info.Info.Files[i].Length
 	}
 
 	lastpieceLength := info.Info.Length % info.Info.PieceLength
+	if lastpieceLength == 0 {
+		lastpieceLength = info.Info.PieceLength
+	}
 	piecesString := info.Info.Pieces
 	pieces = make([]*Piece, len(piecesString)/20)
 	for i := 0; i < len(piecesString); i += 20 {
@@ -61,7 +64,6 @@ func main() {
 	}
 
 	workQueue := make(chan *Piece, len(pieces))
-
 	for i := range pieces {
 		workQueue <- pieces[i]
 	}

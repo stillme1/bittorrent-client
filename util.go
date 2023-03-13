@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"sync"
-
-	gotorrentparser "github.com/j-muller/go-torrent-parser"
 )
 
 // constants
@@ -28,15 +26,6 @@ func removePeer(peer Peer) {
 	mutex.Lock()
 	delete(listOfPeers, peer.ip + fmt.Sprintf("%v", peer.port))
 	mutex.Unlock()
-}
-
-func getSize(torrent *gotorrentparser.Torrent) int64 {
-	files := torrent.Files
-	var size int64
-	for _, val := range files {
-		size += val.Length
-	}
-	return size
 }
 
 func deletePiece(k int) {
