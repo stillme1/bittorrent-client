@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -11,6 +13,8 @@ import (
 )
 
 func main() {
+	go http.ListenAndServe(":8080", nil)
+	
 	// Generating a random peer id
 	rand.Read(PEER_ID)
 
