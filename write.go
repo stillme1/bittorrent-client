@@ -8,7 +8,9 @@ import (
 func write(k int) {
 	defer markPieceDone(k)
 	defer deletePiece(k)
+	mutex.Lock()
 	if pieceDone[k] {
+		mutex.Unlock()
 		return
 	}
 	offset := int64(k) * piecelength
@@ -42,6 +44,7 @@ func write(k int) {
 			if err != nil {
 				panic(err)
 			}
+			mutex.Unlock()
 			return
 		}
 		_, err = file.Write((*pieces[k].data)[dataOffset: dataOffset + info.Info.Files[i].Length - offset])
@@ -53,4 +56,5 @@ func write(k int) {
 		offset = 0
 		i++
 	}
+	mutex.Unlock()
 }
