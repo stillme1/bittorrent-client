@@ -6,8 +6,13 @@ import (
 )
 
 func write(k int) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	defer markPieceDone(k)
 	defer deletePiece(k)
+	if pieceDone[k] {
+		return
+	}
 	offset := int64(k) * piecelength
 	left := pieces[k].length
 	i := 0
